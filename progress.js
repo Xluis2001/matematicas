@@ -1,6 +1,7 @@
 /**
  * Módulo para gestionar el progreso del estudiante
  * Optimizado para rendimiento y estabilidad
+ * Actualizado para incluir métricas de precisión
  */
 
 const progress = {
@@ -27,6 +28,22 @@ const progress = {
     },
     
     /**
+     * Calcula la precisión en base a aciertos y total de intentos
+     * @param {number} correctCount - Número de respuestas correctas 
+     * @param {number} totalCount - Número total de ejercicios
+     * @returns {Object} Objeto con detalles de la precisión
+     */
+    calculatePrecision: function(correctCount, totalCount) {
+        if (!totalCount || totalCount <= 0) return { percent: 0, text: "0/0 intentos (0%)" };
+        
+        const percent = Math.round((correctCount / totalCount) * 100);
+        return {
+            percent,
+            text: `${correctCount}/${totalCount} intentos (${percent}%)`
+        };
+    },
+    
+    /**
      * Actualiza el progreso de una operación
      * @param {number} grade - Número de grado (1-6)
      * @param {string} operation - Nombre de la operación
@@ -37,6 +54,7 @@ const progress = {
     updateProgress: function(grade, operation, correctCount, totalCount) {
         try {
             const stars = this.calculateStars(correctCount, totalCount);
+            const precision = this.calculatePrecision(correctCount, totalCount);
             const passed = stars > 0; // Se considera aprobado si tiene al menos 1 estrella
             
             // Actualizar en el almacenamiento
@@ -52,7 +70,12 @@ const progress = {
                 if (stars > op.stars) {
                     op.stars = stars;
                 }
+                
+                // Guardar los datos de precisión
                 op.completed = true;
+                op.correctCount = correctCount;
+                op.totalCount = totalCount;
+                op.precision = precision.percent;
                 
                 // Determinar la siguiente operación a desbloquear
                 let nextOperation = null;
@@ -102,10 +125,10 @@ const progress = {
                 storage.saveData(data);
             }
             
-            return { stars, passed };
+            return { stars, passed, precision };
         } catch (error) {
             console.error("Error al actualizar progreso:", error);
-            return { stars: 0, passed: false };
+            return { stars: 0, passed: false, precision: { percent: 0, text: "0/0 intentos (0%)" } };
         }
     },
     
@@ -154,6 +177,25 @@ const progress = {
         } catch (error) {
             console.error("Error al obtener estrellas:", error);
             return 0;
+        }
+    },
+    
+    /**
+     * Obtiene la precisión para una operación
+     * @param {number} grade - Grado escolar
+     * @param {string} operation - Nombre de la operación
+     * @returns {Object} Objeto con la información de precisión
+     */
+    getOperationPrecision: function(grade, operation) {
+        try {
+            const op = storage.getOperation(grade, operation);
+            if (!op || !op.correctCount || !op.totalCount) {
+                return { percent: 0, text: "0/0 intentos (0%)" };
+            }
+            return this.calculatePrecision(op.correctCount, op.totalCount);
+        } catch (error) {
+            console.error("Error al obtener precisión:", error);
+            return { percent: 0, text: "0/0 intentos (0%)" };
         }
     },
     

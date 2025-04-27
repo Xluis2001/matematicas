@@ -1,7 +1,7 @@
 /**
  * Módulo para el manejo del almacenamiento local
  * Permite guardar y recuperar el progreso del estudiante
- * Con optimizaciones para rendimiento
+ * Con optimizaciones para rendimiento y soporte para precisión
  */
 
 const storage = {
@@ -12,67 +12,68 @@ const storage = {
     
     /**
      * Estructura inicial de datos para un estudiante nuevo
+     * Ahora incluye campos para precisión
      */
     initialData: {
         grades: {
             1: {
                 unlocked: true,
                 operations: {
-                    addition: { unlocked: true, completed: false, stars: 0 },
-                    subtraction: { unlocked: false, completed: false, stars: 0 },
-                    multiplication: { unlocked: false, completed: false, stars: 0 },
-                    division: { unlocked: false, completed: false, stars: 0 }
+                    addition: { unlocked: true, completed: false, stars: 0, correctCount: 0, totalCount: 0, precision: 0 },
+                    subtraction: { unlocked: false, completed: false, stars: 0, correctCount: 0, totalCount: 0, precision: 0 },
+                    multiplication: { unlocked: false, completed: false, stars: 0, correctCount: 0, totalCount: 0, precision: 0 },
+                    division: { unlocked: false, completed: false, stars: 0, correctCount: 0, totalCount: 0, precision: 0 }
                 }
             },
             2: {
                 unlocked: true,
                 operations: {
-                    addition: { unlocked: true, completed: false, stars: 0 },
-                    subtraction: { unlocked: false, completed: false, stars: 0 },
-                    multiplication: { unlocked: false, completed: false, stars: 0 },
-                    division: { unlocked: false, completed: false, stars: 0 }
+                    addition: { unlocked: true, completed: false, stars: 0, correctCount: 0, totalCount: 0, precision: 0 },
+                    subtraction: { unlocked: false, completed: false, stars: 0, correctCount: 0, totalCount: 0, precision: 0 },
+                    multiplication: { unlocked: false, completed: false, stars: 0, correctCount: 0, totalCount: 0, precision: 0 },
+                    division: { unlocked: false, completed: false, stars: 0, correctCount: 0, totalCount: 0, precision: 0 }
                 }
             },
             3: {
                 unlocked: true,
                 operations: {
-                    addition: { unlocked: true, completed: false, stars: 0 },
-                    subtraction: { unlocked: false, completed: false, stars: 0 },
-                    multiplication: { unlocked: false, completed: false, stars: 0 },
-                    division: { unlocked: false, completed: false, stars: 0 }
+                    addition: { unlocked: true, completed: false, stars: 0, correctCount: 0, totalCount: 0, precision: 0 },
+                    subtraction: { unlocked: false, completed: false, stars: 0, correctCount: 0, totalCount: 0, precision: 0 },
+                    multiplication: { unlocked: false, completed: false, stars: 0, correctCount: 0, totalCount: 0, precision: 0 },
+                    division: { unlocked: false, completed: false, stars: 0, correctCount: 0, totalCount: 0, precision: 0 }
                 }
             },
             4: {
                 unlocked: true,
                 operations: {
-                    addition: { unlocked: true, completed: false, stars: 0 },
-                    subtraction: { unlocked: false, completed: false, stars: 0 },
-                    multiplication: { unlocked: false, completed: false, stars: 0 },
-                    division: { unlocked: false, completed: false, stars: 0 }
+                    addition: { unlocked: true, completed: false, stars: 0, correctCount: 0, totalCount: 0, precision: 0 },
+                    subtraction: { unlocked: false, completed: false, stars: 0, correctCount: 0, totalCount: 0, precision: 0 },
+                    multiplication: { unlocked: false, completed: false, stars: 0, correctCount: 0, totalCount: 0, precision: 0 },
+                    division: { unlocked: false, completed: false, stars: 0, correctCount: 0, totalCount: 0, precision: 0 }
                 }
             },
             5: {
                 unlocked: true,
                 operations: {
-                    addition: { unlocked: true, completed: false, stars: 0 },
-                    subtraction: { unlocked: false, completed: false, stars: 0 },
-                    multiplication: { unlocked: false, completed: false, stars: 0 },
-                    division: { unlocked: false, completed: false, stars: 0 },
-                    fractions: { unlocked: false, completed: false, stars: 0 },
-                    decimals: { unlocked: false, completed: false, stars: 0 }
+                    addition: { unlocked: true, completed: false, stars: 0, correctCount: 0, totalCount: 0, precision: 0 },
+                    subtraction: { unlocked: false, completed: false, stars: 0, correctCount: 0, totalCount: 0, precision: 0 },
+                    multiplication: { unlocked: false, completed: false, stars: 0, correctCount: 0, totalCount: 0, precision: 0 },
+                    division: { unlocked: false, completed: false, stars: 0, correctCount: 0, totalCount: 0, precision: 0 },
+                    fractions: { unlocked: false, completed: false, stars: 0, correctCount: 0, totalCount: 0, precision: 0 },
+                    decimals: { unlocked: false, completed: false, stars: 0, correctCount: 0, totalCount: 0, precision: 0 }
                 }
             },
             6: {
                 unlocked: true,
                 operations: {
-                    addition: { unlocked: true, completed: false, stars: 0 },
-                    subtraction: { unlocked: false, completed: false, stars: 0 },
-                    multiplication: { unlocked: false, completed: false, stars: 0 },
-                    division: { unlocked: false, completed: false, stars: 0 },
-                    fractions: { unlocked: false, completed: false, stars: 0 },
-                    decimals: { unlocked: false, completed: false, stars: 0 },
-                    powers: { unlocked: false, completed: false, stars: 0 },
-                    percentages: { unlocked: false, completed: false, stars: 0 }
+                    addition: { unlocked: true, completed: false, stars: 0, correctCount: 0, totalCount: 0, precision: 0 },
+                    subtraction: { unlocked: false, completed: false, stars: 0, correctCount: 0, totalCount: 0, precision: 0 },
+                    multiplication: { unlocked: false, completed: false, stars: 0, correctCount: 0, totalCount: 0, precision: 0 },
+                    division: { unlocked: false, completed: false, stars: 0, correctCount: 0, totalCount: 0, precision: 0 },
+                    fractions: { unlocked: false, completed: false, stars: 0, correctCount: 0, totalCount: 0, precision: 0 },
+                    decimals: { unlocked: false, completed: false, stars: 0, correctCount: 0, totalCount: 0, precision: 0 },
+                    powers: { unlocked: false, completed: false, stars: 0, correctCount: 0, totalCount: 0, precision: 0 },
+                    percentages: { unlocked: false, completed: false, stars: 0, correctCount: 0, totalCount: 0, precision: 0 }
                 }
             }
         }
@@ -83,14 +84,44 @@ const storage = {
     
     /**
      * Inicializa el almacenamiento si no existe
+     * Actualiza datos antiguos con la nueva estructura si es necesario
      */
     initialize() {
         try {
-            if (!localStorage.getItem(this.STORAGE_KEY)) {
+            let existingData = localStorage.getItem(this.STORAGE_KEY);
+            
+            if (!existingData) {
+                // No hay datos existentes, crear nuevos
                 localStorage.setItem(this.STORAGE_KEY, JSON.stringify(this.initialData));
+                this.dataCache = JSON.parse(JSON.stringify(this.initialData));
+            } else {
+                // Cargar datos existentes en caché
+                this.dataCache = JSON.parse(existingData);
+                
+                // Verificar si los datos existentes tienen la nueva estructura
+                // y actualizar si es necesario
+                let needsUpdate = false;
+                
+                for (let grade = 1; grade <= 6; grade++) {
+                    if (!this.dataCache.grades[grade]) continue;
+                    
+                    const gradeOperations = this.dataCache.grades[grade].operations;
+                    for (const op in gradeOperations) {
+                        // Si no tiene los campos de precisión, agregarlos
+                        if (gradeOperations[op].precision === undefined) {
+                            gradeOperations[op].correctCount = 0;
+                            gradeOperations[op].totalCount = 0;
+                            gradeOperations[op].precision = 0;
+                            needsUpdate = true;
+                        }
+                    }
+                }
+                
+                // Si se actualizó algo, guardar los cambios
+                if (needsUpdate) {
+                    localStorage.setItem(this.STORAGE_KEY, JSON.stringify(this.dataCache));
+                }
             }
-            // Cargar datos en caché
-            this.dataCache = JSON.parse(localStorage.getItem(this.STORAGE_KEY));
         } catch (error) {
             console.error("Error al inicializar almacenamiento:", error);
             // Reiniciar si hay datos corruptos
@@ -168,8 +199,10 @@ const storage = {
      * @param {string} operation - Nombre de la operación
      * @param {boolean} completed - Si se completó la operación
      * @param {number} stars - Número de estrellas obtenidas (0-3)
+     * @param {number} correctCount - Respuestas correctas
+     * @param {number} totalCount - Total de ejercicios
      */
-    updateOperation(grade, operation, completed, stars) {
+    updateOperation(grade, operation, completed, stars, correctCount, totalCount) {
         const data = this.getData();
         const op = data.grades[grade].operations[operation];
         
@@ -180,6 +213,13 @@ const storage = {
         
         if (completed) {
             op.completed = true;
+        }
+        
+        // Actualizar datos de precisión
+        if (correctCount !== undefined && totalCount !== undefined) {
+            op.correctCount = correctCount;
+            op.totalCount = totalCount;
+            op.precision = totalCount > 0 ? Math.round((correctCount / totalCount) * 100) : 0;
         }
         
         this.saveData(data);

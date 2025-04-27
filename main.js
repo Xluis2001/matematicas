@@ -1,6 +1,7 @@
 /**
  * Script principal para la aplicación MathLearn
  * Optimizado para rendimiento y estabilidad
+ * Actualizado para mostrar métricas de precisión
  */
 
 // Variables globales
@@ -37,7 +38,7 @@ document.addEventListener('DOMContentLoaded', () => {
         setupConfirmModal();
     } catch (error) {
         console.error("Error durante la inicialización:", error);
-        alert("Ocurrió un error al iniciar la aplicación. Por favor, recarga la página.");
+        showErrorModal("Ocurrió un error al iniciar la aplicación. Por favor, recarga la página.");
     }
 });
 
@@ -52,12 +53,17 @@ function setupGradeCards() {
             try {
                 const grade = parseInt(card.dataset.grade);
                 
-                // Permitir acceso a cualquier grado
-                selectedGrade = grade;
-                loadOperations(grade);
-                showScreen('operation-selection-screen');
+                // Verificar si el grado está desbloqueado
+                if (progress.isGradeUnlocked(grade)) {
+                    selectedGrade = grade;
+                    loadOperations(grade);
+                    showScreen('operation-selection-screen');
+                } else {
+                    showErrorModal("Este grado aún no está disponible. Completa los grados anteriores primero.");
+                }
             } catch (error) {
                 console.error("Error al seleccionar grado:", error);
+                showErrorModal("Ocurrió un error al seleccionar el grado.");
             }
         });
     });
@@ -71,8 +77,12 @@ function updateGradeCards() {
         const gradeCards = document.querySelectorAll('.grade-card');
         
         gradeCards.forEach(card => {
-            // Eliminar clase 'locked' de todas las tarjetas
-            card.classList.remove('locked');
+            const grade = parseInt(card.dataset.grade);
+            if (progress.isGradeUnlocked(grade)) {
+                card.classList.remove('locked');
+            } else {
+                card.classList.add('locked');
+            }
         });
     } catch (error) {
         console.error("Error al actualizar tarjetas de grado:", error);
@@ -129,6 +139,15 @@ function setupNavigationButtons() {
         document.getElementById('progress-home-btn').addEventListener('click', () => {
             showScreen('grade-selection-screen');
         });
+        
+        // Configurar el botón para el modal de error
+        document.getElementById('error-ok').addEventListener('click', () => {
+            document.getElementById('error-modal').style.display = 'none';
+        });
+        
+        document.getElementById('reload-page').addEventListener('click', () => {
+            window.location.reload();
+        });
     } catch (error) {
         console.error("Error al configurar botones de navegación:", error);
     }
@@ -140,16 +159,37 @@ function setupNavigationButtons() {
 function setupExerciseScreen() {
     try {
         const answerInput = document.getElementById('answer-input');
+        const submitButton = document.getElementById('submit-answer-btn');
         
-        // Manejar el envío de respuesta
-        document.getElementById('submit-answer-btn').addEventListener('click', () => {
-            checkAnswer();
+        // Manejar el envío de respuesta con el botón
+        submitButton.addEventListener('click', () => {
+            if (!submitButton.disabled) {
+                checkAnswer();
+            }
         });
         
-        // También permitir enviar con Enter
-        answerInput.addEventListener('keypress', (e) => {
+        // Permitir enviar con Enter, pero con protección contra pulsaciones rápidas
+        let lastEnterTime = 0;
+        answerInput.addEventListener('keydown', (e) => {
             if (e.key === 'Enter') {
-                checkAnswer();
+                // Prevenir comportamiento por defecto para tener control total
+                e.preventDefault();
+                
+                // Obtener el tiempo actual
+                const currentTime = new Date().getTime();
+                
+                // Verificar si ya estamos procesando una respuesta o si han pasado menos de 300ms desde la última pulsación
+                if (isProcessingAnswer || (currentTime - lastEnterTime < 300)) {
+                    return;
+                }
+                
+                // Actualizar el tiempo de la última pulsación
+                lastEnterTime = currentTime;
+                
+                // Si el botón y el input no están deshabilitados, procesar la respuesta
+                if (!submitButton.disabled && !answerInput.disabled) {
+                    checkAnswer();
+                }
             }
         });
     } catch (error) {
@@ -223,6 +263,23 @@ function showConfirmModal(message, onConfirm) {
 }
 
 /**
+ * Muestra el modal de error
+ * @param {string} message - Mensaje de error a mostrar
+ */
+function showErrorModal(message) {
+    try {
+        const modal = document.getElementById('error-modal');
+        const errorMessage = document.getElementById('error-message');
+        
+        errorMessage.textContent = message;
+        modal.style.display = 'block';
+    } catch (error) {
+        console.error("Error al mostrar modal de error:", error);
+        alert(message); // Fallback si no se puede mostrar el modal
+    }
+}
+
+/**
  * Cambia entre pantallas
  * @param {string} screenId - ID de la pantalla a mostrar
  */
@@ -246,6 +303,7 @@ function showScreen(screenId) {
         }
     } catch (error) {
         console.error("Error al cambiar de pantalla:", error);
+        showErrorModal("Ocurrió un error al cambiar de pantalla. Por favor, recarga la página.");
     }
 }
 
@@ -256,6 +314,9 @@ function updateSelectedGradeText() {
     try {
         const suffix = getSuffix(selectedGrade);
         document.getElementById('selected-grade-text').textContent = `${selectedGrade}${suffix} Grado`;
+        
+        // También actualizar en la pantalla de progreso
+        document.getElementById('progress-grade-text').textContent = `${selectedGrade}${suffix} Grado`;
     } catch (error) {
         console.error("Error al actualizar texto de grado:", error);
     }
@@ -283,70 +344,108 @@ function getSuffix(grade) {
 function loadOperations(grade) {
     try {
         const operationGrid = document.querySelector('.operation-grid');
-        operationGrid.innerHTML = '';
+        operationGrid.innerHTML = '<div class="loading-indicator"><i class="fas fa-spinner fa-spin"></i> Cargando operaciones...</div>';
         
-        // Obtener configuración del grado
-        const gradeConfig = exercises.config[grade];
-        if (!gradeConfig) return;
-        
-        // Obtener progreso del grado
-        const operationsProgress = progress.getGradeOperations(grade);
-        
-        // Crear tarjetas para cada operación - optimizado para rendimiento
-        const fragment = document.createDocumentFragment(); // Usar fragment para mejorar rendimiento
-        
-        for (const opKey in gradeConfig.operations) {
-            const op = gradeConfig.operations[opKey];
-            const opProgress = operationsProgress[opKey];
-            
-            if (!op || !opProgress) continue; // Protección contra datos inválidos
-            
-            const card = document.createElement('div');
-            card.className = 'operation-card';
-            card.dataset.operation = opKey;
-            
-            // Añadir clases según estado
-            if (opProgress.completed) {
-                card.classList.add('completed');
-            }
-            
-            if (!opProgress.unlocked) {
-                card.classList.add('locked');
-            }
-            
-            // Contenido de la tarjeta
-            let statusText = '';
-            if (!opProgress.unlocked) {
-                statusText = '<div class="status-text locked">Bloqueado</div>';
-            } else if (opProgress.completed) {
-                statusText = '<div class="status-text completed">Completado</div>';
-            } else {
-                statusText = '<div class="status-text available">Disponible</div>';
-            }
-            
-            card.innerHTML = `
-                <i class="fas ${op.icon}"></i>
-                <div class="operation-name">${op.name}</div>
-                ${statusText}
-                <div class="stars-indicator">
-                    ${getStarsHTML(opProgress.stars)}
-                </div>
-            `;
-            
-            // Evento de clic
-            card.addEventListener('click', () => {
-                if (opProgress.unlocked) {
-                    selectedOperation = opKey;
-                    startExercise(grade, opKey);
-                } else {
-                    alert('Esta operación aún está bloqueada. Completa las operaciones anteriores primero.');
+        // Usar setTimeout para dar tiempo al indicador de carga a mostrarse
+        setTimeout(() => {
+            try {
+                // Obtener configuración del grado
+                const gradeConfig = exercises.config[grade];
+                if (!gradeConfig) {
+                    operationGrid.innerHTML = '<div style="text-align:center;color:red;padding:20px;">No se encontró configuración para este grado.</div>';
+                    return;
                 }
-            });
-            
-            fragment.appendChild(card);
-        }
+                
+                // Obtener progreso del grado
+                const operationsProgress = progress.getGradeOperations(grade);
+                if (!operationsProgress) {
+                    operationGrid.innerHTML = '<div style="text-align:center;color:red;padding:20px;">No se pudo cargar el progreso para este grado.</div>';
+                    return;
+                }
+                
+                // Limpiar el grid
+                operationGrid.innerHTML = '';
+                
+                // Crear tarjetas para cada operación - optimizado para rendimiento
+                const fragment = document.createDocumentFragment(); // Usar fragment para mejorar rendimiento
+                
+                for (const opKey in gradeConfig.operations) {
+                    const op = gradeConfig.operations[opKey];
+                    // Si la operación no existe en el progreso, inicializarla
+                    let opProgress = operationsProgress[opKey];
+                    
+                    if (!opProgress) {
+                        console.warn(`Operación ${opKey} no encontrada en el progreso. Inicializando.`);
+                        opProgress = { 
+                            unlocked: opKey === 'addition', // Solo "suma" está desbloqueada por defecto
+                            completed: false, 
+                            stars: 0,
+                            correctCount: 0,
+                            totalCount: 0,
+                            precision: 0
+                        };
+                    }
+                    
+                    const card = document.createElement('div');
+                    card.className = 'operation-card';
+                    card.dataset.operation = opKey;
+                    
+                    // Añadir clases según estado
+                    if (opProgress.completed) {
+                        card.classList.add('completed');
+                    }
+                    
+                    if (!opProgress.unlocked) {
+                        card.classList.add('locked');
+                    }
+                    
+                    // Obtener precisión si está disponible
+                    let precisionHTML = '';
+                    if (opProgress.completed && opProgress.correctCount && opProgress.totalCount) {
+                        const precision = progress.calculatePrecision(opProgress.correctCount, opProgress.totalCount);
+                        precisionHTML = `<div class="precision-indicator">Precisión: ${precision.text}</div>`;
+                    }
+                    
+                    // Contenido de la tarjeta
+                    let statusText = '';
+                    if (!opProgress.unlocked) {
+                        statusText = '<div class="status-text locked">Bloqueado</div>';
+                    } else if (opProgress.completed) {
+                        statusText = '<div class="status-text completed">Completado</div>';
+                    } else {
+                        statusText = '<div class="status-text available">Disponible</div>';
+                    }
+                    
+                    card.innerHTML = `
+                        <i class="fas ${op.icon}"></i>
+                        <div class="operation-name">${op.name}</div>
+                        ${statusText}
+                        <div class="stars-indicator">
+                            ${getStarsHTML(opProgress.stars)}
+                        </div>
+                        ${precisionHTML}
+                    `;
+                    
+                    // Evento de clic
+                    card.addEventListener('click', () => {
+                        if (opProgress.unlocked) {
+                            selectedOperation = opKey;
+                            startExercise(grade, opKey);
+                        } else {
+                            showErrorModal('Esta operación aún está bloqueada. Completa las operaciones anteriores primero.');
+                        }
+                    });
+                    
+                    fragment.appendChild(card);
+                }
+                
+                operationGrid.appendChild(fragment);
+            } catch (error) {
+                console.error("Error en procesamiento de operaciones:", error);
+                operationGrid.innerHTML = '<div style="text-align:center;color:red;padding:20px;">Ocurrió un error al cargar las operaciones. Por favor, intenta actualizar la página.</div>';
+            }
+        }, 100); // Pequeño retraso para que el indicador de carga se muestre
         
-        operationGrid.appendChild(fragment);
     } catch (error) {
         console.error("Error al cargar operaciones:", error);
         // Mostrar mensaje de error en la interfaz
@@ -385,14 +484,19 @@ function startExercise(grade, operation) {
         currentExercises = exercises.generateExercises(grade, operation);
         
         if (!currentExercises || currentExercises.length === 0) {
-            alert('No se pudieron generar ejercicios. Intenta con otra operación.');
+            showErrorModal('No se pudieron generar ejercicios. Intenta con otra operación.');
             return;
         }
         
-        // Inicializar contadores
+        // Inicializar contadores y variables de control
         currentExerciseIndex = 0;
         correctCount = 0;
         incorrectCount = 0;
+        isProcessingAnswer = false; // Reiniciar el flag de procesamiento
+        
+        // Asegurar que los controles estén habilitados
+        document.getElementById('submit-answer-btn').disabled = false;
+        document.getElementById('answer-input').disabled = false;
         
         // Actualizar textos
         const opConfig = exercises.config[grade].operations[operation];
@@ -401,6 +505,9 @@ function startExercise(grade, operation) {
         document.getElementById('total-exercises').textContent = currentExercises.length;
         document.getElementById('correct-count').textContent = '0';
         document.getElementById('incorrect-count').textContent = '0';
+        
+        // Limpiar feedback anterior si lo hubiera
+        document.getElementById('feedback').className = 'feedback';
         
         // Actualizar barra de progreso
         updateProgressBar();
@@ -412,7 +519,7 @@ function startExercise(grade, operation) {
         showScreen('exercise-screen');
     } catch (error) {
         console.error("Error al iniciar ejercicio:", error);
-        alert("Ocurrió un error al iniciar el ejercicio. Por favor, intenta con otra operación.");
+        showErrorModal("Ocurrió un error al iniciar el ejercicio. Por favor, intenta con otra operación.");
     }
 }
 
@@ -432,11 +539,19 @@ function displayCurrentExercise() {
         document.getElementById('problem-display').textContent = exercise.display;
         
         // Limpiar input y feedback
-        document.getElementById('answer-input').value = '';
+        const answerInput = document.getElementById('answer-input');
+        answerInput.value = '';
+        answerInput.disabled = false; // Asegurar que el input esté habilitado
         document.getElementById('feedback').className = 'feedback';
         
+        // Asegurar que el botón de enviar esté habilitado
+        document.getElementById('submit-answer-btn').disabled = false;
+        
+        // Restablecer el estado de procesamiento
+        isProcessingAnswer = false;
+        
         // Enfocar en el input
-        document.getElementById('answer-input').focus();
+        answerInput.focus();
     } catch (error) {
         console.error("Error al mostrar ejercicio:", error);
     }
@@ -445,19 +560,39 @@ function displayCurrentExercise() {
 /**
  * Verifica la respuesta del usuario
  */
+let isProcessingAnswer = false; // Variable para controlar si se está procesando una respuesta
+
 function checkAnswer() {
     try {
+        // Si ya se está procesando una respuesta, ignorar
+        if (isProcessingAnswer) {
+            return;
+        }
+        
         if (!currentExercises || !currentExercises[currentExerciseIndex]) {
             console.error("Error: No hay ejercicio actual para verificar");
             return;
         }
         
+        // Marcar que estamos procesando una respuesta
+        isProcessingAnswer = true;
+        
+        // Deshabilitar el botón de enviar y el campo de entrada
+        const submitButton = document.getElementById('submit-answer-btn');
+        const answerInput = document.getElementById('answer-input');
+        submitButton.disabled = true;
+        answerInput.disabled = true;
+        
         const exercise = currentExercises[currentExerciseIndex];
-        const userAnswer = document.getElementById('answer-input').value.trim();
+        const userAnswer = answerInput.value.trim();
         const feedback = document.getElementById('feedback');
         
         if (userAnswer === '') {
-            alert('Por favor, ingresa una respuesta.');
+            showErrorModal('Por favor, ingresa una respuesta.');
+            // Volver a habilitar controles
+            submitButton.disabled = false;
+            answerInput.disabled = false;
+            isProcessingAnswer = false;
             return;
         }
         
@@ -482,21 +617,30 @@ function checkAnswer() {
         setTimeout(() => {
             currentExerciseIndex++;
             
-            // Actualizar número de ejercicio
-            document.getElementById('current-exercise').textContent = currentExerciseIndex + 1;
-            
-            // Actualizar barra de progreso
-            updateProgressBar();
-            
-            // Verificar si hemos terminado
-            if (currentExerciseIndex >= currentExercises.length) {
-                finishExercise();
-            } else {
+            // Actualizar número de ejercicio y barra de progreso
+            if (currentExerciseIndex < currentExercises.length) {
+                document.getElementById('current-exercise').textContent = currentExerciseIndex + 1;
+                updateProgressBar();
                 displayCurrentExercise();
+            } else {
+                // Estamos en el último ejercicio, finalizar
+                updateProgressBar();
+                finishExercise();
             }
+            
+            // Restaurar el estado para permitir nuevas respuestas
+            submitButton.disabled = false;
+            answerInput.disabled = false;
+            isProcessingAnswer = false;
         }, 1500);
     } catch (error) {
         console.error("Error al verificar respuesta:", error);
+        showErrorModal("Ocurrió un error al verificar tu respuesta.");
+        
+        // Restaurar el estado en caso de error
+        document.getElementById('submit-answer-btn').disabled = false;
+        document.getElementById('answer-input').disabled = false;
+        isProcessingAnswer = false;
     }
 }
 
@@ -548,11 +692,35 @@ function finishExercise() {
             passingMessage.className = 'passing-message fail';
         }
         
+        // Añadir información de precisión
+        /* if (result.precision) {
+            // Crear elemento para mostrar precisión si no existe
+            let precisionElement = document.getElementById('precision-display');
+            if (!precisionElement) {
+                precisionElement = document.createElement('div');
+                precisionElement.id = 'precision-display';
+                precisionElement.className = 'precision-display';
+                // Insertar después del porcentaje
+                const parentElement = document.querySelector('.result-item:nth-child(3)');
+                if (parentElement) {
+                    parentElement.parentNode.insertBefore(precisionElement, parentElement.nextSibling);
+                }
+            }
+            
+            // Actualizar contenido
+            precisionElement.innerHTML = `
+                <h3>Precisión</h3>
+                <div class="result-value precision-stat">
+                    <i class="fas fa-bullseye"></i> <span>${result.precision.text}</span>
+                </div>
+            `;
+        } */
+        
         // Cambiar a pantalla de resultados
         showScreen('results-screen');
     } catch (error) {
         console.error("Error al finalizar ejercicio:", error);
-        alert("Ocurrió un error al finalizar el ejercicio. Tus resultados podrían no haberse guardado correctamente.");
+        showErrorModal("Ocurrió un error al finalizar el ejercicio. Tus resultados podrían no haberse guardado correctamente.");
         showScreen('operation-selection-screen');
     }
 }
@@ -578,8 +746,10 @@ function updateResultStars(stars) {
     }
 }
 
+
 /**
  * Carga la pantalla de progreso
+ * Versión mejorada para mostrar precisión cuando se accede desde el botón "Ver Progreso"
  * @param {number} grade - Grado escolar
  */
 function loadProgressScreen(grade) {
@@ -599,46 +769,86 @@ function loadProgressScreen(grade) {
         
         // Obtener contenedor
         const progressGrid = document.querySelector('.progress-grid');
-        progressGrid.innerHTML = '';
+        progressGrid.innerHTML = '<div class="loading-indicator"><i class="fas fa-spinner fa-spin"></i> Cargando progreso...</div>';
         
-        // Usar DocumentFragment para mejor rendimiento
-        const fragment = document.createDocumentFragment();
-        
-        // Crear elementos para cada operación
-        for (const opKey in operationsProgress) {
-            // Verificar si la operación existe en la configuración
-            if (!gradeConfig.operations[opKey]) continue;
-            
-            const opProgress = operationsProgress[opKey];
-            const opConfig = gradeConfig.operations[opKey];
-            
-            if (!opProgress || !opConfig) continue;
-            
-            // Crear elemento
-            const progressOp = document.createElement('div');
-            progressOp.className = 'progress-operation';
-            
-            // Estado de completado
-            const status = opProgress.completed ? 'Completado' : 'No completado';
-            
-            // Contenido
-            progressOp.innerHTML = `
-                <div class="progress-name">
-                    <i class="fas ${opConfig.icon}"></i>
-                    ${opConfig.name}
-                </div>
-                <div class="progress-info">
-                    <div class="progress-status">${status}</div>
-                    <div class="progress-stars">
-                        ${getStarsHTML(opProgress.stars)}
-                    </div>
-                </div>
-            `;
-            
-            fragment.appendChild(progressOp);
-        }
-        
-        progressGrid.appendChild(fragment);
+        // Usar setTimeout para dar tiempo al indicador de carga a mostrarse
+        setTimeout(() => {
+            try {
+                // Limpiar el grid
+                progressGrid.innerHTML = '';
+                
+                // Usar DocumentFragment para mejor rendimiento
+                const fragment = document.createDocumentFragment();
+                
+                // Crear elementos para cada operación
+                for (const opKey in gradeConfig.operations) {
+                    const opConfig = gradeConfig.operations[opKey];
+                    // Si la operación no existe en el progreso, mostrar como no desbloqueada
+                    const opProgress = operationsProgress[opKey] || {
+                        unlocked: false,
+                        completed: false,
+                        stars: 0,
+                        correctCount: 0,
+                        totalCount: 0,
+                        precision: 0
+                    };
+                    
+                    // Crear elemento
+                    const progressOp = document.createElement('div');
+                    progressOp.className = 'progress-operation';
+                    
+                    // Aplicar clase según estado
+                    if (!opProgress.unlocked) {
+                        progressOp.classList.add('locked');
+                    } else if (opProgress.completed) {
+                        progressOp.classList.add('completed');
+                    }
+                    
+                    // Información de precisión mejorada (formato similar al proyecto anterior)
+                    let precisionHTML = '';
+                    if (opProgress.completed && opProgress.correctCount && opProgress.totalCount) {
+                        const precision = progress.calculatePrecision(opProgress.correctCount, opProgress.totalCount);
+                        precisionHTML = `
+                            <div class="progress-precision-container">
+                                <div class="progress-precision">
+                                    <span class="precision-value">Precisión: ${precision.text}</span>
+                                </div>
+                            </div>
+                        `;
+                    }
+                    
+                    // Estado con estrellas
+                    const starsHTML = getStarsHTML(opProgress.stars);
+                    
+                    // Obtener el nombre amigable de la operación
+                    const operationName = opConfig.name;
+                    
+                    // Icono para la operación
+                    const operationIcon = opConfig.icon || 'fa-calculator';
+                    
+                    // Contenido con formato mejorado
+                    progressOp.innerHTML = `
+                        <div class="progress-header">
+                            <div class="progress-name">
+                                <i class="fas ${operationIcon}"></i>
+                                ${operationName}
+                            </div>
+                            <div class="progress-stars">
+                                ${starsHTML}
+                            </div>
+                        </div>
+                        ${precisionHTML}
+                    `;
+                    
+                    fragment.appendChild(progressOp);
+                }
+                
+                progressGrid.appendChild(fragment);
+            } catch (error) {
+                console.error("Error en procesamiento de progreso:", error);
+                progressGrid.innerHTML = '<div style="text-align:center;color:red;padding:20px;">Ocurrió un error al cargar el progreso. Por favor, intenta actualizar la página.</div>';
+            }
+        }, 100);
     } catch (error) {
         console.error("Error al cargar pantalla de progreso:", error);
         
@@ -657,10 +867,10 @@ function resetAllProgress() {
     try {
         storage.resetProgress();
         updateGradeCards();
-        alert('Tu progreso ha sido reiniciado. Todos los grados excepto 1er grado han sido bloqueados.');
+        showErrorModal('Tu progreso ha sido reiniciado correctamente.');
         showScreen('grade-selection-screen');
     } catch (error) {
         console.error("Error al reiniciar progreso:", error);
-        alert("Ocurrió un error al reiniciar el progreso. Por favor, intenta actualizar la página.");
+        showErrorModal("Ocurrió un error al reiniciar el progreso. Por favor, intenta actualizar la página.");
     }
 }

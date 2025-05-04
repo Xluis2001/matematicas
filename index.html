@@ -3,180 +3,368 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MathLearn - Práctica de Matemáticas</title>
+    <title>MathLearn 2.0 - Aprende Matemáticas Jugando</title>
+    <link rel="icon" href="favicon.ico" type="image/x-icon">
     <link rel="stylesheet" href="styles.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
     <!-- Metaetiqueta para prevenir el almacenamiento en caché y forzar recarga -->
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
 </head>
 <body>
-    <div class="container">
-        <header>
-            <h1><i class="fas fa-calculator"></i> MathLearn</h1>
-            <p>Practica matemáticas de forma interactiva</p>
+    <div class="app-container">
+        <!-- Mascota del juego, siempre visible -->
+        <div id="mascot" class="mascot">
+            <div class="speech-bubble hidden" id="mascot-speech">
+                <p id="mascot-text">¡Hola! Soy Mati, tu ayudante matemático.</p>
+            </div>
+            <img src="images/mascot-happy.png" alt="Mati, la mascota matemática" id="mascot-img">
+        </div>
+
+        <header class="main-header">
+            <div class="logo-container">
+                <div class="logo-icon">
+                    <i class="fas fa-calculator"></i>
+                </div>
+                <h1 class="logo-text">MathLearn<span class="version">2.0</span></h1>
+            </div>
+            <p class="tagline">¡Aprende matemáticas jugando!</p>
         </header>
 
-        <!-- Pantalla de Selección de Grado -->
-        <div id="grade-selection-screen" class="screen active">
-            <h2>Selecciona tu grado</h2>
-            <div class="grade-grid">
-                <div class="grade-card" data-grade="1">
-                    <div class="grade-number">1<sup>er</sup></div>
-                    <div class="grade-label">Grado</div>
+        <main class="main-content">
+            <!-- Pantalla de Selección de Grado -->
+            <div id="grade-selection-screen" class="screen active">
+                <div class="screen-header">
+                    <h2 class="with-icon">
+                        <i class="fas fa-graduation-cap"></i>
+                        Selecciona tu grado
+                    </h2>
                 </div>
-                <div class="grade-card" data-grade="2">
-                    <div class="grade-number">2<sup>do</sup></div>
-                    <div class="grade-label">Grado</div>
-                </div>
-                <div class="grade-card" data-grade="3">
-                    <div class="grade-number">3<sup>er</sup></div>
-                    <div class="grade-label">Grado</div>
-                </div>
-                <div class="grade-card" data-grade="4">
-                    <div class="grade-number">4<sup>to</sup></div>
-                    <div class="grade-label">Grado</div>
-                </div>
-                <div class="grade-card" data-grade="5">
-                    <div class="grade-number">5<sup>to</sup></div>
-                    <div class="grade-label">Grado</div>
-                </div>
-                <div class="grade-card" data-grade="6">
-                    <div class="grade-number">6<sup>to</sup></div>
-                    <div class="grade-label">Grado</div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Pantalla de Selección de Operación -->
-        <div id="operation-selection-screen" class="screen">
-            <h2>Selecciona la operación</h2>
-            <div id="grade-display" class="grade-display">
-                <span id="selected-grade-text">1er Grado</span>
-                <button id="change-grade-btn" class="small-btn"><i class="fas fa-exchange-alt"></i> Cambiar</button>
-            </div>
-            <div class="operation-grid">
-                <!-- Las operaciones se cargarán dinámicamente según el grado -->
-                <div class="loading-indicator">
-                    <i class="fas fa-spinner fa-spin"></i> Cargando operaciones...
-                </div>
-            </div>
-        </div>
-
-        <!-- Pantalla de Ejercicios -->
-        <div id="exercise-screen" class="screen">
-            <div class="exercise-header">
-                <div id="operation-display" class="operation-display">
-                    <span id="selected-operation-text">Suma</span>
-                    <button id="change-operation-btn" class="small-btn"><i class="fas fa-exchange-alt"></i> Cambiar</button>
-                </div>
-                <div class="progress-container">
-                    <div id="progress-bar" class="progress-bar"></div>
-                </div>
-                <div class="exercise-counter">
-                    <span id="current-exercise">1</span>/<span id="total-exercises">20</span>
-                </div>
-            </div>
-
-            <div class="score-board">
-                <div class="score correct">
-                    <i class="fas fa-check-circle"></i> <span id="correct-count">0</span>
-                </div>
-                <div class="score incorrect">
-                    <i class="fas fa-times-circle"></i> <span id="incorrect-count">0</span>
-                </div>
-            </div>
-
-            <div class="exercise-container">
-                <div id="problem-display" class="problem-display">
-                    <!-- El problema matemático se mostrará aquí -->
-                </div>
-                <div class="answer-container">
-                    <input type="number" id="answer-input" class="answer-input" placeholder="Escribe tu respuesta">
-                    <button id="submit-answer-btn" class="btn primary">Verificar</button>
-                </div>
-            </div>
-
-            <div id="feedback" class="feedback">
-                <!-- El feedback se mostrará aquí -->
-            </div>
-        </div>
-
-        <!-- Pantalla de Resultados -->
-        <div id="results-screen" class="screen">
-            <h2>¡Has terminado!</h2>
-            <div class="results-summary">
-                <div class="result-item">
-                    <h3>Aciertos</h3>
-                    <div class="result-value correct">
-                        <i class="fas fa-check-circle"></i> <span id="final-correct">0</span>
+                
+                <div class="grade-grid">
+                    <div class="grade-card" data-grade="1">
+                        <div class="grade-card-inner">
+                            <div class="grade-icon">
+                                <img src="images/grade-1.png" alt="Primer grado">
+                            </div>
+                            <div class="grade-info">
+                                <div class="grade-number">1<sup>er</sup></div>
+                                <div class="grade-label">Grado</div>
+                            </div>
+                        </div>
                     </div>
-                </div>
-                <div class="result-item">
-                    <h3>Errores</h3>
-                    <div class="result-value incorrect">
-                        <i class="fas fa-times-circle"></i> <span id="final-incorrect">0</span>
+                    <div class="grade-card" data-grade="2">
+                        <div class="grade-card-inner">
+                            <div class="grade-icon">
+                                <img src="images/grade-2.png" alt="Segundo grado">
+                            </div>
+                            <div class="grade-info">
+                                <div class="grade-number">2<sup>do</sup></div>
+                                <div class="grade-label">Grado</div>
+                            </div>
+                        </div>
                     </div>
-                </div>
-                <div class="result-item">
-                    <h3>Porcentaje</h3>
-                    <div class="result-value">
-                        <i class="fas fa-percentage"></i> <span id="percentage">0%</span>
+                    <div class="grade-card" data-grade="3">
+                        <div class="grade-card-inner">
+                            <div class="grade-icon">
+                                <img src="images/grade-3.png" alt="Tercer grado">
+                            </div>
+                            <div class="grade-info">
+                                <div class="grade-number">3<sup>er</sup></div>
+                                <div class="grade-label">Grado</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="grade-card" data-grade="4">
+                        <div class="grade-card-inner">
+                            <div class="grade-icon">
+                                <img src="images/grade-4.png" alt="Cuarto grado">
+                            </div>
+                            <div class="grade-info">
+                                <div class="grade-number">4<sup>to</sup></div>
+                                <div class="grade-label">Grado</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="grade-card" data-grade="5">
+                        <div class="grade-card-inner">
+                            <div class="grade-icon">
+                                <img src="images/grade-5.png" alt="Quinto grado">
+                            </div>
+                            <div class="grade-info">
+                                <div class="grade-number">5<sup>to</sup></div>
+                                <div class="grade-label">Grado</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="grade-card" data-grade="6">
+                        <div class="grade-card-inner">
+                            <div class="grade-icon">
+                                <img src="images/grade-6.png" alt="Sexto grado">
+                            </div>
+                            <div class="grade-info">
+                                <div class="grade-number">6<sup>to</sup></div>
+                                <div class="grade-label">Grado</div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <div class="stars-container">
-                <div id="star-1" class="star"><i class="far fa-star"></i></div>
-                <div id="star-2" class="star"><i class="far fa-star"></i></div>
-                <div id="star-3" class="star"><i class="far fa-star"></i></div>
-            </div>
-
-            <div id="passing-message" class="passing-message">
-                <!-- Mensaje de aprobación o no aprobación -->
-            </div>
-
-            <div class="button-container">
-                <button id="try-again-btn" class="btn primary">Intentar de Nuevo</button>
-                <button id="select-operation-btn" class="btn secondary">Cambiar Operación</button>
-                <button id="home-btn" class="btn back-btn">Volver al Inicio</button>
-            </div>
-        </div>
-
-        <!-- Pantalla de Progreso -->
-        <div id="progress-screen" class="screen">
-            <h2>Tu Progreso</h2>
-            <div id="progress-grade-display" class="grade-display">
-                <span id="progress-grade-text">1er Grado</span>
-                <button id="progress-change-grade-btn" class="small-btn"><i class="fas fa-exchange-alt"></i> Cambiar</button>
-            </div>
-            <div class="progress-grid">
-                <!-- El progreso se cargará dinámicamente -->
-                <div class="loading-indicator">
-                    <i class="fas fa-spinner fa-spin"></i> Cargando progreso...
+            <!-- Pantalla de Selección de Operación -->
+            <div id="operation-selection-screen" class="screen">
+                <div class="screen-header">
+                    <h2 class="with-icon">
+                        <i class="fas fa-tasks"></i>
+                        Selecciona la operación
+                    </h2>
+                    <div id="grade-display" class="grade-display">
+                        <span id="selected-grade-text">1er Grado</span>
+                        <button id="change-grade-btn" class="button-icon">
+                            <i class="fas fa-exchange-alt"></i>
+                            <span>Cambiar</span>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="operation-grid">
+                    <!-- Las operaciones se cargarán dinámicamente según el grado -->
+                    <div class="loading-indicator">
+                        <div class="spinner"></div>
+                        <p>Cargando operaciones...</p>
+                    </div>
                 </div>
             </div>
-            <div class="button-container">
-                <button id="progress-home-btn" class="btn back-btn">Volver al Inicio</button>
-            </div>
-        </div>
 
-        <footer>
-            <p>&copy; 2025 MathLearn - Aplicación de Práctica de Matemáticas</p>
-            <button id="view-progress-btn" class="footer-btn"><i class="fas fa-chart-line"></i> Ver Progreso</button>
-            <button id="reset-progress-btn" class="footer-btn"><i class="fas fa-trash-alt"></i> Reiniciar Progreso</button>
+            <!-- Pantalla de Ejercicios -->
+            <div id="exercise-screen" class="screen">
+                <div class="exercise-header">
+                    <div id="operation-display" class="operation-display">
+                        <div class="operation-title">
+                            <i id="operation-icon" class="fas fa-plus"></i>
+                            <span id="selected-operation-text">Suma</span>
+                        </div>
+                        <button id="change-operation-btn" class="button-icon">
+                            <i class="fas fa-exchange-alt"></i>
+                            <span>Cambiar</span>
+                        </button>
+                    </div>
+                    
+                    <div class="progress-wrapper">
+                        <div class="progress-container">
+                            <div id="progress-bar" class="progress-bar"></div>
+                        </div>
+                        <div class="exercise-counter">
+                            <span id="current-exercise">1</span>/<span id="total-exercises">20</span>
+                        </div>
+                    </div>
+                    
+                    <div class="score-board">
+                        <div class="score correct">
+                            <i class="fas fa-check-circle"></i> <span id="correct-count">0</span>
+                        </div>
+                        <div class="score incorrect">
+                            <i class="fas fa-times-circle"></i> <span id="incorrect-count">0</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="exercise-container">
+                    <div id="problem-display" class="problem-display">
+                        <!-- El problema matemático se mostrará aquí -->
+                    </div>
+                    
+                    <div class="answer-container">
+                        <input type="number" id="answer-input" class="answer-input" placeholder="Tu respuesta">
+                        <button id="submit-answer-btn" class="button primary">
+                            <i class="fas fa-check"></i>
+                            <span>Verificar</span>
+                        </button>
+                    </div>
+                    
+                    <!-- Teclado numérico para móviles -->
+                    <div class="numeric-keyboard" id="numeric-keyboard">
+                        <button class="keyboard-key" data-key="1">1</button>
+                        <button class="keyboard-key" data-key="2">2</button>
+                        <button class="keyboard-key" data-key="3">3</button>
+                        <button class="keyboard-key" data-key="4">4</button>
+                        <button class="keyboard-key" data-key="5">5</button>
+                        <button class="keyboard-key" data-key="6">6</button>
+                        <button class="keyboard-key" data-key="7">7</button>
+                        <button class="keyboard-key" data-key="8">8</button>
+                        <button class="keyboard-key" data-key="9">9</button>
+                        <button class="keyboard-key" data-key="0">0</button>
+                        <button class="keyboard-key keyboard-key-wide" data-key="backspace">
+                            <i class="fas fa-backspace"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div id="feedback" class="feedback">
+                    <!-- El feedback se mostrará aquí -->
+                </div>
+                
+                <!-- Temporizador (opcional) -->
+                <div id="timer" class="timer">
+                    <i class="fas fa-stopwatch"></i>
+                    <span id="time-display">30s</span>
+                </div>
+            </div>
+
+            <!-- Pantalla de Resultados -->
+            <div id="results-screen" class="screen">
+                <div class="screen-header">
+                    <h2 class="with-animation">
+                        <i class="fas fa-trophy"></i>
+                        ¡Has terminado!
+                    </h2>
+                </div>
+                
+                <div class="results-summary">
+                    <div class="result-item">
+                        <div class="result-icon correct">
+                            <i class="fas fa-check-circle"></i>
+                        </div>
+                        <h3>Aciertos</h3>
+                        <div class="result-value">
+                            <span id="final-correct" class="counter">0</span>
+                        </div>
+                    </div>
+                    <div class="result-item">
+                        <div class="result-icon incorrect">
+                            <i class="fas fa-times-circle"></i>
+                        </div>
+                        <h3>Errores</h3>
+                        <div class="result-value">
+                            <span id="final-incorrect" class="counter">0</span>
+                        </div>
+                    </div>
+                    <div class="result-item">
+                        <div class="result-icon percentage">
+                            <i class="fas fa-percentage"></i>
+                        </div>
+                        <h3>Porcentaje</h3>
+                        <div class="result-value">
+                            <span id="percentage" class="counter">0%</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="trophy-container" id="trophy-container">
+                    <!-- Trofeo que se mostrará según el rendimiento -->
+                </div>
+
+                <div class="stars-container">
+                    <div id="star-1" class="star"><i class="far fa-star"></i></div>
+                    <div id="star-2" class="star"><i class="far fa-star"></i></div>
+                    <div id="star-3" class="star"><i class="far fa-star"></i></div>
+                </div>
+
+                <div id="passing-message" class="passing-message">
+                    <!-- Mensaje de aprobación o no aprobación -->
+                </div>
+
+                <div class="button-container">
+                    <button id="try-again-btn" class="button primary">
+                        <i class="fas fa-redo"></i>
+                        <span>Intentar de Nuevo</span>
+                    </button>
+                    <button id="select-operation-btn" class="button secondary">
+                        <i class="fas fa-exchange-alt"></i>
+                        <span>Cambiar Operación</span>
+                    </button>
+                    <button id="home-btn" class="button back">
+                        <i class="fas fa-home"></i>
+                        <span>Volver al Inicio</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Pantalla de Progreso -->
+            <div id="progress-screen" class="screen">
+                <div class="screen-header">
+                    <h2 class="with-icon">
+                        <i class="fas fa-chart-line"></i>
+                        Tu Progreso
+                    </h2>
+                    <div id="progress-grade-display" class="grade-display">
+                        <span id="progress-grade-text">1er Grado</span>
+                        <button id="progress-change-grade-btn" class="button-icon">
+                            <i class="fas fa-exchange-alt"></i>
+                            <span>Cambiar</span>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="progress-grid">
+                    <!-- El progreso se cargará dinámicamente -->
+                    <div class="loading-indicator">
+                        <div class="spinner"></div>
+                        <p>Cargando progreso...</p>
+                    </div>
+                </div>
+                
+                <div class="progress-summary" id="progress-summary">
+                    <!-- Resumen de progreso general -->
+                </div>
+                
+                <div class="button-container">
+                    <button id="progress-home-btn" class="button back">
+                        <i class="fas fa-home"></i>
+                        <span>Volver al Inicio</span>
+                    </button>
+                </div>
+            </div>
+        </main>
+
+        <footer class="main-footer">
+            <div class="footer-content">
+                <p class="copyright">&copy; 2025 MathLearn 2.0 - Aprendizaje Matemático Divertido - Percystem</p>
+                <div class="footer-actions">
+                    <button id="view-progress-btn" class="footer-button">
+                        <i class="fas fa-chart-line"></i>
+                        <span>Ver Progreso</span>
+                    </button>
+                    <button id="toggle-sound-btn" class="footer-button">
+                        <i class="fas fa-volume-up" id="sound-icon"></i>
+                        <span id="sound-text">Sonidos: ON</span>
+                    </button>
+                    <button id="reset-progress-btn" class="footer-button danger">
+                        <i class="fas fa-trash-alt"></i>
+                        <span>Reiniciar Progreso</span>
+                    </button>
+                </div>
+            </div>
         </footer>
+        
+        <!-- Efecto de confeti para celebraciones -->
+        <!-- <div id="confetti-container" class="confetti-container"></div> -->
+        <div id="confetti-container" class="confetti-container">
+            <canvas id="confetti-canvas" style="width:100%; height:100%"></canvas>
+        </div>
     </div>
 
     <!-- Modal de Confirmación -->
     <div id="confirm-modal" class="modal">
         <div class="modal-content">
-            <h3>Confirmar Acción</h3>
-            <p id="confirm-message">¿Estás seguro de que deseas reiniciar todo tu progreso?</p>
-            <div class="button-container">
-                <button id="confirm-yes" class="btn primary">Sí</button>
-                <button id="confirm-no" class="btn secondary">No</button>
+            <div class="modal-header">
+                <h3><i class="fas fa-question-circle"></i> Confirmar Acción</h3>
+            </div>
+            <div class="modal-body">
+                <p id="confirm-message">¿Estás seguro de que deseas reiniciar todo tu progreso?</p>
+            </div>
+            <div class="modal-footer">
+                <button id="confirm-yes" class="button primary">
+                    <i class="fas fa-check"></i>
+                    <span>Sí</span>
+                </button>
+                <button id="confirm-no" class="button secondary">
+                    <i class="fas fa-times"></i>
+                    <span>No</span>
+                </button>
             </div>
         </div>
     </div>
@@ -184,19 +372,70 @@
     <!-- Modal de Error -->
     <div id="error-modal" class="modal">
         <div class="modal-content">
-            <h3><i class="fas fa-exclamation-triangle" style="color: #f44336;"></i> Error</h3>
-            <p id="error-message">Ha ocurrido un error inesperado.</p>
-            <div class="button-container">
-                <button id="error-ok" class="btn primary">Aceptar</button>
-                <button id="reload-page" class="btn secondary">Recargar Página</button>
+            <div class="modal-header error">
+                <h3><i class="fas fa-exclamation-triangle"></i> Error</h3>
+            </div>
+            <div class="modal-body">
+                <p id="error-message">Ha ocurrido un error inesperado.</p>
+            </div>
+            <div class="modal-footer">
+                <button id="error-ok" class="button primary">
+                    <i class="fas fa-check"></i>
+                    <span>Aceptar</span>
+                </button>
+                <button id="reload-page" class="button secondary">
+                    <i class="fas fa-sync"></i>
+                    <span>Recargar Página</span>
+                </button>
             </div>
         </div>
     </div>
 
-    <!-- Scripts -->
+    <!-- Modal de Ayuda -->
+    <div id="help-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header help">
+                <h3><i class="fas fa-question-circle"></i> Ayuda</h3>
+            </div>
+            <div class="modal-body">
+                <div id="help-content">
+                    <!-- Contenido de ayuda dinámico -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button id="help-ok" class="button primary">
+                    <i class="fas fa-check"></i>
+                    <span>Entendido</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Área para pistas -->
+    <div id="hint-area" class="hint-area hidden">
+        <div class="hint-content">
+            <i class="fas fa-lightbulb"></i>
+            <p id="hint-text">Prueba a pensar en...</p>
+        </div>
+        <button id="close-hint" class="close-hint">
+            <i class="fas fa-times"></i>
+        </button>
+    </div>
+
+    <!-- Sonidos -->
+    <audio id="sound-correct" src="sounds/correct.mp3" preload="auto"></audio>
+    <audio id="sound-incorrect" src="sounds/incorrect.mp3" preload="auto"></audio>
+    <audio id="sound-complete" src="sounds/complete.mp3" preload="auto"></audio>
+    <audio id="sound-click" src="sounds/click.mp3" preload="auto"></audio>
+    <audio id="sound-star" src="sounds/star.mp3" preload="auto"></audio>
+
+    <script src="mini-confetti-clasico.js"></script>
     <script src="storage.js"></script>
     <script src="exercises.js"></script>
     <script src="progress.js"></script>
+    <script src="animations.js"></script>
+    <script src="sounds.js"></script>
+    <script src="mascot.js"></script>
     <script src="main.js"></script>
 </body>
 </html>

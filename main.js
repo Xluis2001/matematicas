@@ -1,876 +1,816 @@
 /**
- * Script principal para la aplicación MathLearn
- * Optimizado para rendimiento y estabilidad
- * Actualizado para mostrar métricas de precisión
+ * Archivo principal para MathLearn 2.0
+ * Maneja la lógica de la aplicación y los eventos de la interfaz de usuario
  */
 
-// Variables globales
-let currentScreen = 'grade-selection-screen';
-let selectedGrade = 1;
-let selectedOperation = '';
-let currentExercises = [];
-let currentExerciseIndex = 0;
-let correctCount = 0;
-let incorrectCount = 0;
-
-// Función que se ejecuta al cargar la página
 document.addEventListener('DOMContentLoaded', () => {
-    try {
-        // Inicializar almacenamiento
-        storage.initialize();
-        
-        // Configurar eventos para tarjetas de grado
-        setupGradeCards();
-        
-        // Configurar botones de navegación
-        setupNavigationButtons();
-        
-        // Configurar pantalla de ejercicios
-        setupExerciseScreen();
-        
-        // Configurar pantalla de resultados
-        setupResultsScreen();
-        
-        // Configurar pantalla de progreso
-        setupProgressScreen();
-        
-        // Configurar modal de confirmación
-        setupConfirmModal();
-    } catch (error) {
-        console.error("Error durante la inicialización:", error);
-        showErrorModal("Ocurrió un error al iniciar la aplicación. Por favor, recarga la página.");
+    // Verificar si exercises existe en window, si no, intentar crearlo
+    if (!window.exercises && typeof exercises !== 'undefined') {
+        console.log("Añadiendo exercises al objeto window");
+        window.exercises = exercises;
     }
-});
-
-/**
- * Configura los eventos para las tarjetas de grado
- */
-function setupGradeCards() {
-    const gradeCards = document.querySelectorAll('.grade-card');
     
-    gradeCards.forEach(card => {
-        card.addEventListener('click', () => {
-            try {
-                const grade = parseInt(card.dataset.grade);
-                
-                // Verificar si el grado está desbloqueado
-                if (progress.isGradeUnlocked(grade)) {
-                    selectedGrade = grade;
-                    loadOperations(grade);
-                    showScreen('operation-selection-screen');
-                } else {
-                    showErrorModal("Este grado aún no está disponible. Completa los grados anteriores primero.");
+    // Verificar que los componentes necesarios están disponibles
+    if (!window.exercises || !window.exercises.config) {
+        console.error("Error: El módulo 'exercises' no está inicializado correctamente");
+        showErrorMessage("No se pudo cargar el módulo de ejercicios. Por favor, recarga la página.");
+        return;
+    }
+
+    // Función para mostrar un mensaje de error simple
+    function showErrorMessage(message) {
+        const errorDiv = document.createElement('div');
+        errorDiv.style.position = 'fixed';
+        errorDiv.style.top = '20%';
+        errorDiv.style.left = '50%';
+        errorDiv.style.transform = 'translateX(-50%)';
+        errorDiv.style.backgroundColor = '#ff6565';
+        errorDiv.style.color = 'white';
+        errorDiv.style.padding = '20px';
+        errorDiv.style.borderRadius = '10px';
+        errorDiv.style.boxShadow = '0 4px 8px rgba(0,0,0,0.2)';
+        errorDiv.style.zIndex = '9999';
+        errorDiv.innerHTML = `<h3>Error</h3><p>${message}</p><button id="reload-btn" style="padding:8px 16px;margin-top:10px;background:#fff;color:#ff6565;border:none;border-radius:4px;cursor:pointer;">Recargar página</button>`;
+        document.body.appendChild(errorDiv);
+        
+        document.getElementById('reload-btn').addEventListener('click', () => {
+            window.location.reload();
+        });
+    }
+
+    // Continúa con el resto del código original...
+
+    // Referencias a las pantallas
+    const screens = {
+        gradeSelection: document.getElementById('grade-selection-screen'),
+        operationSelection: document.getElementById('operation-selection-screen'),
+        exercise: document.getElementById('exercise-screen'),
+        results: document.getElementById('results-screen'),
+        progress: document.getElementById('progress-screen')
+    };
+
+    // Referencias a elementos importantes
+    const elements = {
+        gradeCards: document.querySelectorAll('.grade-card'),
+        changeGradeBtn: document.getElementById('change-grade-btn'),
+        changeOperationBtn: document.getElementById('change-operation-btn'),
+        submitAnswerBtn: document.getElementById('submit-answer-btn'),
+        answerInput: document.getElementById('answer-input'),
+        numericKeyboard: document.getElementById('numeric-keyboard'),
+        keyboardKeys: document.querySelectorAll('.keyboard-key'),
+        tryAgainBtn: document.getElementById('try-again-btn'),
+        selectOperationBtn: document.getElementById('select-operation-btn'),
+        homeBtn: document.getElementById('home-btn'),
+        progressHomeBtn: document.getElementById('progress-home-btn'),
+        viewProgressBtn: document.getElementById('view-progress-btn'),
+        resetProgressBtn: document.getElementById('reset-progress-btn'),
+        operationGrid: document.querySelector('.operation-grid'),
+        problemDisplay: document.getElementById('problem-display'),
+        feedback: document.getElementById('feedback'),
+        progressBar: document.getElementById('progress-bar'),
+        currentExerciseEl: document.getElementById('current-exercise'),
+        totalExercisesEl: document.getElementById('total-exercises'),
+        correctCountEl: document.getElementById('correct-count'),
+        incorrectCountEl: document.getElementById('incorrect-count'),
+        finalCorrectEl: document.getElementById('final-correct'),
+        finalIncorrectEl: document.getElementById('final-incorrect'),
+        percentageEl: document.getElementById('percentage'),
+        passingMessageEl: document.getElementById('passing-message'),
+        progressChangeGradeBtn: document.getElementById('progress-change-grade-btn'),
+        progressGrid: document.querySelector('.progress-grid'),
+        progressSummary: document.getElementById('progress-summary')
+    };
+
+    // Modales
+    const modals = {
+        confirm: document.getElementById('confirm-modal'),
+        error: document.getElementById('error-modal'),
+        help: document.getElementById('help-modal'),
+        confirmYes: document.getElementById('confirm-yes'),
+        confirmNo: document.getElementById('confirm-no'),
+        errorOk: document.getElementById('error-ok'),
+        reloadPage: document.getElementById('reload-page'),
+        helpOk: document.getElementById('help-ok'),
+        confirmMessage: document.getElementById('confirm-message'),
+        errorMessage: document.getElementById('error-message'),
+        helpContent: document.getElementById('help-content')
+    };
+
+    // Variables de estado
+    let state = {
+        currentScreen: 'gradeSelection',
+        selectedGrade: null,
+        selectedOperation: null,
+        exercises: [],
+        currentExerciseIndex: 0,
+        correctCount: 0,
+        incorrectCount: 0,
+        timerInterval: null,
+        isSubmitting: false  // Añadir esta nueva variable aquí
+    };
+
+    // Función para mostrar una pantalla y ocultar las demás
+    function showScreen(screenName) {
+        // Ocultar todas las pantallas
+        Object.values(screens).forEach(screen => {
+            screen.classList.remove('active');
+        });
+
+        // Mostrar la pantalla solicitada
+        screens[screenName].classList.add('active');
+        state.currentScreen = screenName;
+
+        // Acciones específicas según la pantalla
+        if (screenName === 'gradeSelection') {
+            updateGradeCards();
+        }
+    }
+
+    // Actualiza las tarjetas de grado, marcando las que están bloqueadas
+    function updateGradeCards() {
+        elements.gradeCards.forEach(card => {
+            const grade = parseInt(card.getAttribute('data-grade'));
+            
+            // Verificar si el grado está desbloqueado
+            if (window.storage && !window.storage.isGradeUnlocked(grade)) {
+                card.classList.add('locked');
+            } else {
+                card.classList.remove('locked');
+            }
+        });
+    }
+
+    // Carga las operaciones para un grado específico
+    function loadOperations(grade) {
+        const gradeConfig = window.exercises.config[grade];
+        if (!gradeConfig) {
+            showError("Configuración de grado no disponible");
+            return;
+        }
+
+        // Actualizar texto del grado seleccionado
+        document.getElementById('selected-grade-text').textContent = `${grade}º Grado`;
+        
+        // Limpiar grid de operaciones
+        elements.operationGrid.innerHTML = '';
+        
+        // Añadir cada operación disponible para este grado
+        Object.keys(gradeConfig.operations).forEach(op => {
+            const operation = gradeConfig.operations[op];
+            
+            // Crear tarjeta de operación
+            const card = document.createElement('div');
+            card.className = 'operation-card';
+            card.setAttribute('data-operation', op);
+            
+            // Verificar si está desbloqueada/completada
+            if (window.storage) {
+                if (!window.storage.isOperationUnlocked(grade, op)) {
+                    card.classList.add('locked');
                 }
-            } catch (error) {
-                console.error("Error al seleccionar grado:", error);
-                showErrorModal("Ocurrió un error al seleccionar el grado.");
+                
+                if (window.storage.isOperationCompleted(grade, op)) {
+                    card.classList.add('completed');
+                }
+            }
+            
+            // Determinar estrellas
+            let stars = 0;
+            if (window.storage) {
+                stars = window.storage.getOperationStars(grade, op);
+            }
+            
+            // Obtener precisión
+            let precision = { percent: 0, text: "0/0 intentos (0%)" };
+            if (window.storage) {
+                precision = window.storage.getOperationPrecision(grade, op);
+            }
+            
+            // Añadir contenido HTML a la tarjeta
+            card.innerHTML = `
+                <i class="fas ${operation.icon}"></i>
+                <h3 class="operation-name">${operation.name}</h3>
+                <div class="stars-indicator">
+                    ${getStarsHTML(stars)}
+                </div>
+                <div class="precision-indicator">
+                    ${precision.text}
+                </div>
+            `;
+            
+            // Añadir evento de clic (si no está bloqueada)
+            if (!card.classList.contains('locked')) {
+                card.addEventListener('click', () => {
+                    selectOperation(grade, op);
+                });
+            }
+            
+            // Añadir al grid
+            elements.operationGrid.appendChild(card);
+        });
+    }
+
+    // Retorna HTML para las estrellas
+    function getStarsHTML(count) {
+        let html = '';
+        for (let i = 0; i < 3; i++) {
+            if (i < count) {
+                html += '<i class="fas fa-star"></i>';
+            } else {
+                html += '<i class="far fa-star"></i>';
+            }
+        }
+        return html;
+    }
+
+    // Selecciona una operación e inicia los ejercicios
+    function selectOperation(grade, operation) {
+        state.selectedGrade = grade;
+        state.selectedOperation = operation;
+        
+        // Obtener nombre y color de la operación
+        const opConfig = window.exercises.config[grade].operations[operation];
+        document.getElementById('selected-operation-text').textContent = opConfig.name;
+        document.getElementById('operation-icon').className = `fas ${opConfig.icon}`;
+        
+        // Generar ejercicios
+        state.exercises = window.exercises.generateExercises(grade, operation);
+        
+        if (state.exercises.length === 0) {
+            showError("No se pudieron generar ejercicios para esta operación");
+            return;
+        }
+        
+        // Reiniciar contadores y estado
+        state.currentExerciseIndex = 0;
+        state.correctCount = 0;
+        state.incorrectCount = 0;
+        
+        // Actualizar contadores en la UI
+        elements.correctCountEl.textContent = state.correctCount;
+        elements.incorrectCountEl.textContent = state.incorrectCount;
+        
+        // Actualizar total de ejercicios
+        elements.totalExercisesEl.textContent = state.exercises.length;
+        
+        // Cargar primer ejercicio
+        loadExercise(0);
+        
+        // Hacer que la mascota reaccione
+        if (window.mascot) {
+            if (window.exercises.config[grade].mascotPhrases) {
+                window.mascot.react('start', { 
+                    gradeMessages: window.exercises.config[grade].mascotPhrases 
+                });
+            } else {
+                window.mascot.react('start');
+            }
+        }
+        
+        // Mostrar pantalla de ejercicios
+        showScreen('exercise');
+        
+        // Enfocar el campo de respuesta
+        elements.answerInput.value = '';
+        elements.answerInput.focus();
+        
+        // Reproducir sonido
+        if (window.sounds) {
+            window.sounds.playClick();
+        }
+    }
+
+    // Referencias al temporizador
+    const timer = {
+        container: document.getElementById('timer'),
+        display: document.getElementById('time-display')
+    };
+
+    // Inicia el temporizador para un ejercicio
+    function startTimer() {
+        // Primero limpiar cualquier temporizador existente
+        if (state.timerInterval) {
+            clearInterval(state.timerInterval);
+            state.timerInterval = null;
+        }
+        
+        // Verificar si el temporizador debe mostrarse
+        const config = window.storage ? window.storage.getConfig() : null;
+        const showTimer = config ? config.showTimer : false;
+        
+        if (!showTimer) {
+            // Ocultar el temporizador si está desactivado
+            if (timer.container) timer.container.style.display = 'none';
+            return;
+        }
+        
+        // Mostrar el temporizador
+        if (timer.container) timer.container.style.display = 'flex';
+        
+        // Obtener duración del temporizador de la configuración
+        const duration = config ? config.timerDuration : 30;
+        let timeLeft = duration;
+        
+        // Actualizar visualización inicial
+        updateTimerDisplay(timeLeft);
+        
+        // Iniciar intervalo para actualizar el temporizador cada segundo
+        state.timerInterval = setInterval(() => {
+            timeLeft--;
+            updateTimerDisplay(timeLeft);
+            
+            // Cuando el tiempo se acaba
+            if (timeLeft <= 0) {
+                clearInterval(state.timerInterval);
+                state.timerInterval = null;
+                
+                // Si no se ha enviado una respuesta, contar como incorrecta y pasar al siguiente
+                if (!state.isSubmitting) {
+                    // Mostrar mensaje de tiempo agotado
+                    elements.feedback.className = 'feedback incorrect';
+                    elements.feedback.textContent = 'Tiempo agotado. La respuesta correcta es: ' + 
+                        state.exercises[state.currentExerciseIndex].correctAnswer;
+                    
+                    // Incrementar contador de incorrectas
+                    state.incorrectCount++;
+                    elements.incorrectCountEl.textContent = state.incorrectCount;
+                    
+                    // Pasar al siguiente ejercicio después de un breve retraso
+                    setTimeout(() => {
+                        state.currentExerciseIndex++;
+                        loadExercise(state.currentExerciseIndex);
+                    }, 2000);
+                }
+            }
+        }, 1000);
+    }
+
+    // Actualiza la visualización del temporizador
+    function updateTimerDisplay(seconds) {
+        if (!timer.display) return;
+        
+        // Mostrar el tiempo restante
+        timer.display.textContent = seconds + 's';
+        
+        // Cambiar color cuando queda poco tiempo
+        if (seconds <= 5) {
+            timer.container.classList.add('warning');
+        } else {
+            timer.container.classList.remove('warning');
+        }
+    }
+
+    // Detiene el temporizador actual
+    function stopTimer() {
+        if (state.timerInterval) {
+            clearInterval(state.timerInterval);
+            state.timerInterval = null;
+        }
+    }
+
+    // Carga un ejercicio específico
+    function loadExercise(index) {
+        if (index >= state.exercises.length) {
+            showResults();
+            return;
+        }
+        
+        const exercise = state.exercises[index];
+        
+        // Mostrar el problema
+        elements.problemDisplay.textContent = exercise.display;
+        
+        // Actualizar contador de ejercicios
+        elements.currentExerciseEl.textContent = index + 1;
+        
+        // Actualizar barra de progreso
+        const progress = ((index + 1) / state.exercises.length) * 100;
+        elements.progressBar.style.width = `${progress}%`;
+        
+        // Limpiar campo de respuesta y feedback
+        elements.answerInput.value = '';
+        elements.feedback.className = 'feedback';
+        elements.feedback.textContent = '';
+        
+        // Enfocar el campo de respuesta
+        elements.answerInput.focus();
+        // Iniciar temporizador
+        startTimer();
+    }
+
+    // Verifica la respuesta del usuario
+    function checkAnswer() {
+    // Si ya está en proceso de envío, ignorar
+    if (state.isSubmitting) return;
+    
+    // Detener temporizador
+    stopTimer();
+    
+    // Activar el bloqueo
+    state.isSubmitting = true;
+    
+    const currentExercise = state.exercises[state.currentExerciseIndex];
+    const userAnswer = elements.answerInput.value.trim();
+    
+    if (userAnswer === '') {
+        // Mostrar feedback de error por respuesta vacía
+        elements.feedback.className = 'feedback incorrect';
+        elements.feedback.textContent = 'Por favor, ingresa una respuesta';
+        elements.answerInput.focus();
+        
+        // Desactivar el bloqueo después de un breve período
+        setTimeout(() => {
+            state.isSubmitting = false;
+        }, 500);
+        return;
+    }
+        
+        const isCorrect = window.exercises.checkAnswer(currentExercise, userAnswer);
+        
+        if (isCorrect) {
+            // Respuesta correcta
+            state.correctCount++;
+            elements.correctCountEl.textContent = state.correctCount;
+            
+            // Mostrar feedback positivo
+            elements.feedback.className = 'feedback correct';
+            elements.feedback.textContent = '¡Correcto!';
+            
+            // Hacer que la mascota reaccione
+            if (window.mascot) {
+                window.mascot.react('correct', { 
+                    gradeMessages: window.exercises.config[state.selectedGrade].mascotPhrases 
+                });
+            }
+            
+            // Reproducir sonido
+            if (window.sounds) {
+                window.sounds.playCorrect();
+            }
+        } else {
+            // Respuesta incorrecta
+            state.incorrectCount++;
+            elements.incorrectCountEl.textContent = state.incorrectCount;
+            
+            // Mostrar feedback negativo
+            elements.feedback.className = 'feedback incorrect';
+            elements.feedback.textContent = `Incorrecto. La respuesta correcta es: ${currentExercise.correctAnswer}`;
+            
+            // Hacer que la mascota reaccione
+            if (window.mascot) {
+                window.mascot.react('incorrect', { 
+                    gradeMessages: window.exercises.config[state.selectedGrade].mascotPhrases 
+                });
+            }
+            
+            // Reproducir sonido
+            if (window.sounds) {
+                window.sounds.playIncorrect();
+            }
+        }
+        
+        // Pasar al siguiente ejercicio después de un breve retraso
+        setTimeout(() => {
+            state.currentExerciseIndex++;
+            loadExercise(state.currentExerciseIndex);
+            state.isSubmitting = false; // Desactivar el bloqueo
+        }, 2000);
+    }
+
+    // Muestra los resultados finales
+    function showResults() {
+        // Calcular porcentaje de aciertos
+        const totalExercises = state.exercises.length;
+        const percentage = totalExercises > 0 ? 
+            Math.round((state.correctCount / totalExercises) * 100) : 0;
+        
+        // Actualizar UI
+        elements.finalCorrectEl.textContent = state.correctCount;
+        elements.finalIncorrectEl.textContent = state.incorrectCount;
+        elements.percentageEl.textContent = `${percentage}%`;
+        
+        // Calcular estrellas
+        const stars = window.progress.calculateStars(state.correctCount, totalExercises);
+        
+        // Determinar si pasó o no
+        const passed = stars > 0;
+        elements.passingMessageEl.className = `passing-message ${passed ? 'pass' : 'fail'}`;
+        elements.passingMessageEl.textContent = passed ? 
+            '¡Felicidades! Has aprobado este nivel.' : 
+            'No has alcanzado el puntaje mínimo. ¡Sigue practicando!';
+        
+        // Guardar progreso
+        if (window.storage && window.progress) {
+            const result = window.progress.updateProgress(
+                state.selectedGrade, 
+                state.selectedOperation,
+                state.correctCount,
+                totalExercises
+            );
+            
+            // Hacer que la mascota reaccione
+            if (window.mascot) {
+                window.mascot.react('levelComplete', result);
+            }
+        }
+        
+        // Mostrar animaciones
+        if (window.animations) {
+            window.animations.animateResults(
+                state.correctCount,
+                state.incorrectCount,
+                percentage,
+                stars
+            );
+        }
+        
+        // Reproducir sonido
+        if (window.sounds) {
+            window.sounds.playComplete();
+        }
+        
+        // Mostrar pantalla de resultados
+        showScreen('results');
+    }
+
+    // Muestra un mensaje de error
+    function showError(message) {
+        modals.errorMessage.textContent = message;
+        modals.error.classList.add('active');
+    }
+
+    // Carga la pantalla de progreso
+    function loadProgressScreen(grade) {
+        document.getElementById('progress-grade-text').textContent = `${grade}º Grado`;
+        
+        // Cargar datos de progreso
+        const gradeOperations = window.progress.getGradeOperations(grade);
+        const gradeConfig = window.exercises.config[grade];
+        
+        // Limpiar grid de progreso
+        elements.progressGrid.innerHTML = '';
+        
+        // Verificar si hay datos disponibles
+        if (!gradeOperations || !gradeConfig) {
+            elements.progressGrid.innerHTML = '<p>No hay datos de progreso disponibles.</p>';
+            return;
+        }
+        
+        // Añadir cada operación al grid de progreso
+        Object.keys(gradeConfig.operations).forEach(op => {
+            const operation = gradeConfig.operations[op];
+            const progress = gradeOperations[op] || { 
+                unlocked: false, 
+                completed: false, 
+                stars: 0 
+            };
+            
+            // Crear tarjeta de progreso
+            const card = document.createElement('div');
+            card.className = 'progress-operation';
+            
+            if (progress.completed) {
+                card.classList.add('completed');
+            }
+            
+            if (!progress.unlocked) {
+                card.classList.add('locked');
+            }
+            
+            // Obtener precisión
+            let precision = { percent: 0, text: "0/0 intentos (0%)" };
+            if (window.storage) {
+                precision = window.storage.getOperationPrecision(grade, op);
+            }
+            
+            // Añadir contenido HTML a la tarjeta
+            card.innerHTML = `
+                <div class="progress-header">
+                    <div class="progress-name">
+                        <i class="fas ${operation.icon}"></i>
+                        ${operation.name}
+                    </div>
+                    <div class="progress-stars">
+                        ${getStarsHTML(progress.stars)}
+                    </div>
+                </div>
+                <div class="progress-precision-container">
+                    <div class="progress-precision">
+                        ${precision.text}
+                    </div>
+                </div>
+            `;
+            
+            // Añadir al grid
+            elements.progressGrid.appendChild(card);
+        });
+        
+        // Mostrar resumen general
+        const summary = window.progress.getSummary();
+        const strengths = window.progress.analyzeStrengthsAndWeaknesses();
+        
+        elements.progressSummary.innerHTML = `
+            <h3>Resumen General</h3>
+            <p>Operaciones completadas: ${summary.completedOperations}/${summary.totalOperations} (${summary.completionPercentage}%)</p>
+            <p>Estrellas obtenidas: ${summary.totalStars}/${summary.maxStars} (${summary.starPercentage}%)</p>
+            
+            <h4>Fortalezas:</h4>
+            <ul>
+                ${strengths.strengths.map(s => `<li>${s.message}</li>`).join('')}
+            </ul>
+            
+            <h4>Áreas de mejora:</h4>
+            <ul>
+                ${strengths.weaknesses.map(w => `<li>${w.message}</li>`).join('')}
+            </ul>
+        `;
+        
+        // Mostrar pantalla de progreso
+        showScreen('progress');
+    }
+
+    // -- Eventos de los elementos de la interfaz -- //
+    
+    // Eventos de grados
+    elements.gradeCards.forEach(card => {
+        card.addEventListener('click', () => {
+            if (!card.classList.contains('locked')) {
+                const grade = parseInt(card.getAttribute('data-grade'));
+                state.selectedGrade = grade;
+                loadOperations(grade);
+                showScreen('operationSelection');
+                if (window.sounds) window.sounds.playClick();
             }
         });
     });
-}
-
-/**
- * Actualiza visualmente las tarjetas de grado según su estado
- */
-function updateGradeCards() {
-    try {
-        const gradeCards = document.querySelectorAll('.grade-card');
-        
-        gradeCards.forEach(card => {
-            const grade = parseInt(card.dataset.grade);
-            if (progress.isGradeUnlocked(grade)) {
-                card.classList.remove('locked');
-            } else {
-                card.classList.add('locked');
-            }
+    
+    // Botón de cambiar grado
+    if (elements.changeGradeBtn) {
+        elements.changeGradeBtn.addEventListener('click', () => {
+            showScreen('gradeSelection');
+            if (window.sounds) window.sounds.playClick();
         });
-    } catch (error) {
-        console.error("Error al actualizar tarjetas de grado:", error);
     }
-}
-
-/**
- * Configura los botones de navegación
- */
-function setupNavigationButtons() {
-    try {
-        // Botón para cambiar de grado
-        document.getElementById('change-grade-btn').addEventListener('click', () => {
-            showScreen('grade-selection-screen');
+    
+    // Botón de cambiar operación
+    if (elements.changeOperationBtn) {
+        elements.changeOperationBtn.addEventListener('click', () => {
+            loadOperations(state.selectedGrade);
+            showScreen('operationSelection');
+            if (window.sounds) window.sounds.playClick();
         });
-        
-        // Botón para cambiar de operación
-        document.getElementById('change-operation-btn').addEventListener('click', () => {
-            showScreen('operation-selection-screen');
-        });
-        
-        // Botones de la pantalla de resultados
-        document.getElementById('try-again-btn').addEventListener('click', () => {
-            startExercise(selectedGrade, selectedOperation);
-        });
-        
-        document.getElementById('select-operation-btn').addEventListener('click', () => {
-            // Recargar explícitamente las operaciones para actualizar estrellas y estados
-            loadOperations(selectedGrade);
-            // Luego mostrar la pantalla
-            showScreen('operation-selection-screen');
-        });
-        
-        document.getElementById('home-btn').addEventListener('click', () => {
-            showScreen('grade-selection-screen');
-        });
-        
-        // Botones de footer
-        document.getElementById('view-progress-btn').addEventListener('click', () => {
-            loadProgressScreen(selectedGrade);
-            showScreen('progress-screen');
-        });
-        
-        document.getElementById('reset-progress-btn').addEventListener('click', () => {
-            showConfirmModal('¿Estás seguro de que deseas reiniciar todo tu progreso?', resetAllProgress);
-        });
-        
-        // Botón de cambio de grado en pantalla de progreso
-        document.getElementById('progress-change-grade-btn').addEventListener('click', () => {
-            showScreen('grade-selection-screen');
-        });
-        
-        // Botón para volver al inicio desde progreso
-        document.getElementById('progress-home-btn').addEventListener('click', () => {
-            showScreen('grade-selection-screen');
-        });
-        
-        // Configurar el botón para el modal de error
-        document.getElementById('error-ok').addEventListener('click', () => {
-            document.getElementById('error-modal').style.display = 'none';
-        });
-        
-        document.getElementById('reload-page').addEventListener('click', () => {
-            window.location.reload();
-        });
-    } catch (error) {
-        console.error("Error al configurar botones de navegación:", error);
     }
-}
-
-/**
- * Configura la pantalla de ejercicios
- */
-function setupExerciseScreen() {
-    try {
-        const answerInput = document.getElementById('answer-input');
-        const submitButton = document.getElementById('submit-answer-btn');
-        
-        // Manejar el envío de respuesta con el botón
-        submitButton.addEventListener('click', () => {
-            if (!submitButton.disabled) {
+    
+    // Botón de verificar respuesta
+    if (elements.submitAnswerBtn) {
+        elements.submitAnswerBtn.addEventListener('click', () => {
+            checkAnswer();
+        });
+    }
+    
+    // Campo de respuesta (para verificar al presionar Enter)
+    if (elements.answerInput) {
+        elements.answerInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
                 checkAnswer();
             }
         });
-        
-        // Permitir enviar con Enter, pero con protección contra pulsaciones rápidas
-        let lastEnterTime = 0;
-        answerInput.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter') {
-                // Prevenir comportamiento por defecto para tener control total
-                e.preventDefault();
-                
-                // Obtener el tiempo actual
-                const currentTime = new Date().getTime();
-                
-                // Verificar si ya estamos procesando una respuesta o si han pasado menos de 300ms desde la última pulsación
-                if (isProcessingAnswer || (currentTime - lastEnterTime < 300)) {
-                    return;
-                }
-                
-                // Actualizar el tiempo de la última pulsación
-                lastEnterTime = currentTime;
-                
-                // Si el botón y el input no están deshabilitados, procesar la respuesta
-                if (!submitButton.disabled && !answerInput.disabled) {
-                    checkAnswer();
-                }
-            }
-        });
-    } catch (error) {
-        console.error("Error al configurar pantalla de ejercicios:", error);
-    }
-}
-
-/**
- * Configura la pantalla de resultados
- */
-function setupResultsScreen() {
-    // No se necesita configuración adicional aquí
-}
-
-/**
- * Configura la pantalla de progreso
- */
-function setupProgressScreen() {
-    // La carga de datos se hace en loadProgressScreen
-}
-
-/**
- * Configura el modal de confirmación
- */
-function setupConfirmModal() {
-    try {
-        const modal = document.getElementById('confirm-modal');
-        const confirmYesBtn = document.getElementById('confirm-yes');
-        const confirmNoBtn = document.getElementById('confirm-no');
-        
-        // Cerrar modal al hacer clic en No
-        confirmNoBtn.addEventListener('click', () => {
-            modal.style.display = 'none';
-        });
-        
-        // Cerrar modal al hacer clic fuera del contenido
-        window.addEventListener('click', (e) => {
-            if (e.target === modal) {
-                modal.style.display = 'none';
-            }
-        });
-    } catch (error) {
-        console.error("Error al configurar modal:", error);
-    }
-}
-
-/**
- * Muestra el modal de confirmación
- * @param {string} message - Mensaje a mostrar
- * @param {Function} onConfirm - Función a ejecutar si se confirma
- */
-function showConfirmModal(message, onConfirm) {
-    try {
-        const modal = document.getElementById('confirm-modal');
-        const confirmMessage = document.getElementById('confirm-message');
-        const confirmYesBtn = document.getElementById('confirm-yes');
-        
-        confirmMessage.textContent = message;
-        
-        // Configurar evento de confirmación
-        confirmYesBtn.onclick = () => {
-            if (onConfirm) onConfirm();
-            modal.style.display = 'none';
-        };
-        
-        // Mostrar modal
-        modal.style.display = 'block';
-    } catch (error) {
-        console.error("Error al mostrar modal:", error);
-    }
-}
-
-/**
- * Muestra el modal de error
- * @param {string} message - Mensaje de error a mostrar
- */
-function showErrorModal(message) {
-    try {
-        const modal = document.getElementById('error-modal');
-        const errorMessage = document.getElementById('error-message');
-        
-        errorMessage.textContent = message;
-        modal.style.display = 'block';
-    } catch (error) {
-        console.error("Error al mostrar modal de error:", error);
-        alert(message); // Fallback si no se puede mostrar el modal
-    }
-}
-
-/**
- * Cambia entre pantallas
- * @param {string} screenId - ID de la pantalla a mostrar
- */
-function showScreen(screenId) {
-    try {
-        // Ocultar pantalla actual
-        document.getElementById(currentScreen).classList.remove('active');
-        
-        // Mostrar nueva pantalla
-        document.getElementById(screenId).classList.add('active');
-        
-        // Actualizar variable
-        currentScreen = screenId;
-        
-        // Acciones específicas según la pantalla
-        if (screenId === 'grade-selection-screen') {
-            updateGradeCards();
-        } else if (screenId === 'operation-selection-screen') {
-            // Actualizar texto del grado seleccionado
-            updateSelectedGradeText();
-        }
-    } catch (error) {
-        console.error("Error al cambiar de pantalla:", error);
-        showErrorModal("Ocurrió un error al cambiar de pantalla. Por favor, recarga la página.");
-    }
-}
-
-/**
- * Actualiza el texto del grado seleccionado
- */
-function updateSelectedGradeText() {
-    try {
-        const suffix = getSuffix(selectedGrade);
-        document.getElementById('selected-grade-text').textContent = `${selectedGrade}${suffix} Grado`;
-        
-        // También actualizar en la pantalla de progreso
-        document.getElementById('progress-grade-text').textContent = `${selectedGrade}${suffix} Grado`;
-    } catch (error) {
-        console.error("Error al actualizar texto de grado:", error);
-    }
-}
-
-/**
- * Obtiene el sufijo para el número de grado
- * @param {number} grade - Número de grado
- * @returns {string} Sufijo (er, do, etc.)
- */
-function getSuffix(grade) {
-    switch(grade) {
-        case 1: return 'er';
-        case 2: return 'do';
-        case 3: return 'er';
-        default: return 'to';
-    }
-}
-
-/**
- * Carga las operaciones disponibles para un grado
- * Versión optimizada para evitar bloqueos
- * @param {number} grade - Grado escolar
- */
-function loadOperations(grade) {
-    try {
-        const operationGrid = document.querySelector('.operation-grid');
-        operationGrid.innerHTML = '<div class="loading-indicator"><i class="fas fa-spinner fa-spin"></i> Cargando operaciones...</div>';
-        
-        // Usar setTimeout para dar tiempo al indicador de carga a mostrarse
-        setTimeout(() => {
-            try {
-                // Obtener configuración del grado
-                const gradeConfig = exercises.config[grade];
-                if (!gradeConfig) {
-                    operationGrid.innerHTML = '<div style="text-align:center;color:red;padding:20px;">No se encontró configuración para este grado.</div>';
-                    return;
-                }
-                
-                // Obtener progreso del grado
-                const operationsProgress = progress.getGradeOperations(grade);
-                if (!operationsProgress) {
-                    operationGrid.innerHTML = '<div style="text-align:center;color:red;padding:20px;">No se pudo cargar el progreso para este grado.</div>';
-                    return;
-                }
-                
-                // Limpiar el grid
-                operationGrid.innerHTML = '';
-                
-                // Crear tarjetas para cada operación - optimizado para rendimiento
-                const fragment = document.createDocumentFragment(); // Usar fragment para mejorar rendimiento
-                
-                for (const opKey in gradeConfig.operations) {
-                    const op = gradeConfig.operations[opKey];
-                    // Si la operación no existe en el progreso, inicializarla
-                    let opProgress = operationsProgress[opKey];
-                    
-                    if (!opProgress) {
-                        console.warn(`Operación ${opKey} no encontrada en el progreso. Inicializando.`);
-                        opProgress = { 
-                            unlocked: opKey === 'addition', // Solo "suma" está desbloqueada por defecto
-                            completed: false, 
-                            stars: 0,
-                            correctCount: 0,
-                            totalCount: 0,
-                            precision: 0
-                        };
-                    }
-                    
-                    const card = document.createElement('div');
-                    card.className = 'operation-card';
-                    card.dataset.operation = opKey;
-                    
-                    // Añadir clases según estado
-                    if (opProgress.completed) {
-                        card.classList.add('completed');
-                    }
-                    
-                    if (!opProgress.unlocked) {
-                        card.classList.add('locked');
-                    }
-                    
-                    // Obtener precisión si está disponible
-                    let precisionHTML = '';
-                    if (opProgress.completed && opProgress.correctCount && opProgress.totalCount) {
-                        const precision = progress.calculatePrecision(opProgress.correctCount, opProgress.totalCount);
-                        precisionHTML = `<div class="precision-indicator">Precisión: ${precision.text}</div>`;
-                    }
-                    
-                    // Contenido de la tarjeta
-                    let statusText = '';
-                    if (!opProgress.unlocked) {
-                        statusText = '<div class="status-text locked">Bloqueado</div>';
-                    } else if (opProgress.completed) {
-                        statusText = '<div class="status-text completed">Completado</div>';
-                    } else {
-                        statusText = '<div class="status-text available">Disponible</div>';
-                    }
-                    
-                    card.innerHTML = `
-                        <i class="fas ${op.icon}"></i>
-                        <div class="operation-name">${op.name}</div>
-                        ${statusText}
-                        <div class="stars-indicator">
-                            ${getStarsHTML(opProgress.stars)}
-                        </div>
-                        ${precisionHTML}
-                    `;
-                    
-                    // Evento de clic
-                    card.addEventListener('click', () => {
-                        if (opProgress.unlocked) {
-                            selectedOperation = opKey;
-                            startExercise(grade, opKey);
-                        } else {
-                            showErrorModal('Esta operación aún está bloqueada. Completa las operaciones anteriores primero.');
-                        }
-                    });
-                    
-                    fragment.appendChild(card);
-                }
-                
-                operationGrid.appendChild(fragment);
-            } catch (error) {
-                console.error("Error en procesamiento de operaciones:", error);
-                operationGrid.innerHTML = '<div style="text-align:center;color:red;padding:20px;">Ocurrió un error al cargar las operaciones. Por favor, intenta actualizar la página.</div>';
-            }
-        }, 100); // Pequeño retraso para que el indicador de carga se muestre
-        
-    } catch (error) {
-        console.error("Error al cargar operaciones:", error);
-        // Mostrar mensaje de error en la interfaz
-        const operationGrid = document.querySelector('.operation-grid');
-        operationGrid.innerHTML = '<div style="text-align:center;color:red;padding:20px;">Ocurrió un error al cargar las operaciones. Por favor, intenta actualizar la página.</div>';
-    }
-}
-
-/**
- * Genera HTML para mostrar estrellas
- * @param {number} stars - Número de estrellas (0-3)
- * @returns {string} HTML con estrellas
- */
-function getStarsHTML(stars) {
-    let html = '';
-    
-    for (let i = 0; i < 3; i++) {
-        if (i < stars) {
-            html += '<i class="fas fa-star"></i>';
-        } else {
-            html += '<i class="far fa-star"></i>';
-        }
     }
     
-    return html;
-}
-
-/**
- * Inicia un ejercicio
- * @param {number} grade - Grado escolar
- * @param {string} operation - Operación a practicar
- */
-function startExercise(grade, operation) {
-    try {
-        // Generar ejercicios
-        currentExercises = exercises.generateExercises(grade, operation);
-        
-        if (!currentExercises || currentExercises.length === 0) {
-            showErrorModal('No se pudieron generar ejercicios. Intenta con otra operación.');
-            return;
-        }
-        
-        // Inicializar contadores y variables de control
-        currentExerciseIndex = 0;
-        correctCount = 0;
-        incorrectCount = 0;
-        isProcessingAnswer = false; // Reiniciar el flag de procesamiento
-        
-        // Asegurar que los controles estén habilitados
-        document.getElementById('submit-answer-btn').disabled = false;
-        document.getElementById('answer-input').disabled = false;
-        
-        // Actualizar textos
-        const opConfig = exercises.config[grade].operations[operation];
-        document.getElementById('selected-operation-text').textContent = opConfig.name;
-        document.getElementById('current-exercise').textContent = '1';
-        document.getElementById('total-exercises').textContent = currentExercises.length;
-        document.getElementById('correct-count').textContent = '0';
-        document.getElementById('incorrect-count').textContent = '0';
-        
-        // Limpiar feedback anterior si lo hubiera
-        document.getElementById('feedback').className = 'feedback';
-        
-        // Actualizar barra de progreso
-        updateProgressBar();
-        
-        // Mostrar primer ejercicio
-        displayCurrentExercise();
-        
-        // Cambiar a pantalla de ejercicios
-        showScreen('exercise-screen');
-    } catch (error) {
-        console.error("Error al iniciar ejercicio:", error);
-        showErrorModal("Ocurrió un error al iniciar el ejercicio. Por favor, intenta con otra operación.");
-    }
-}
-
-/**
- * Muestra el ejercicio actual
- */
-function displayCurrentExercise() {
-    try {
-        if (!currentExercises || currentExercises.length === 0 || !currentExercises[currentExerciseIndex]) {
-            console.error("Error: No hay ejercicios disponibles para mostrar");
-            return;
-        }
-        
-        const exercise = currentExercises[currentExerciseIndex];
-        
-        // Mostrar el problema
-        document.getElementById('problem-display').textContent = exercise.display;
-        
-        // Limpiar input y feedback
-        const answerInput = document.getElementById('answer-input');
-        answerInput.value = '';
-        answerInput.disabled = false; // Asegurar que el input esté habilitado
-        document.getElementById('feedback').className = 'feedback';
-        
-        // Asegurar que el botón de enviar esté habilitado
-        document.getElementById('submit-answer-btn').disabled = false;
-        
-        // Restablecer el estado de procesamiento
-        isProcessingAnswer = false;
-        
-        // Enfocar en el input
-        answerInput.focus();
-    } catch (error) {
-        console.error("Error al mostrar ejercicio:", error);
-    }
-}
-
-/**
- * Verifica la respuesta del usuario
- */
-let isProcessingAnswer = false; // Variable para controlar si se está procesando una respuesta
-
-function checkAnswer() {
-    try {
-        // Si ya se está procesando una respuesta, ignorar
-        if (isProcessingAnswer) {
-            return;
-        }
-        
-        if (!currentExercises || !currentExercises[currentExerciseIndex]) {
-            console.error("Error: No hay ejercicio actual para verificar");
-            return;
-        }
-        
-        // Marcar que estamos procesando una respuesta
-        isProcessingAnswer = true;
-        
-        // Deshabilitar el botón de enviar y el campo de entrada
-        const submitButton = document.getElementById('submit-answer-btn');
-        const answerInput = document.getElementById('answer-input');
-        submitButton.disabled = true;
-        answerInput.disabled = true;
-        
-        const exercise = currentExercises[currentExerciseIndex];
-        const userAnswer = answerInput.value.trim();
-        const feedback = document.getElementById('feedback');
-        
-        if (userAnswer === '') {
-            showErrorModal('Por favor, ingresa una respuesta.');
-            // Volver a habilitar controles
-            submitButton.disabled = false;
-            answerInput.disabled = false;
-            isProcessingAnswer = false;
-            return;
-        }
-        
-        const isCorrect = exercises.checkAnswer(exercise, userAnswer);
-        
-        // Actualizar contadores
-        if (isCorrect) {
-            correctCount++;
-            document.getElementById('correct-count').textContent = correctCount;
+    // Teclado numérico
+    elements.keyboardKeys.forEach(key => {
+        key.addEventListener('click', () => {
+            const keyValue = key.getAttribute('data-key');
             
-            feedback.className = 'feedback correct';
-            feedback.innerHTML = '¡Correcto! <i class="fas fa-check-circle"></i>';
-        } else {
-            incorrectCount++;
-            document.getElementById('incorrect-count').textContent = incorrectCount;
-            
-            feedback.className = 'feedback incorrect';
-            feedback.innerHTML = `Incorrecto. La respuesta correcta es: <strong>${exercise.correctAnswer}</strong> <i class="fas fa-times-circle"></i>`;
-        }
-        
-        // Avanzar al siguiente ejercicio después de un breve retraso
-        setTimeout(() => {
-            currentExerciseIndex++;
-            
-            // Actualizar número de ejercicio y barra de progreso
-            if (currentExerciseIndex < currentExercises.length) {
-                document.getElementById('current-exercise').textContent = currentExerciseIndex + 1;
-                updateProgressBar();
-                displayCurrentExercise();
+            if (keyValue === 'backspace') {
+                // Borrar último carácter
+                elements.answerInput.value = elements.answerInput.value.slice(0, -1);
             } else {
-                // Estamos en el último ejercicio, finalizar
-                updateProgressBar();
-                finishExercise();
+                // Agregar dígito
+                elements.answerInput.value += keyValue;
             }
             
-            // Restaurar el estado para permitir nuevas respuestas
-            submitButton.disabled = false;
-            answerInput.disabled = false;
-            isProcessingAnswer = false;
-        }, 1500);
-    } catch (error) {
-        console.error("Error al verificar respuesta:", error);
-        showErrorModal("Ocurrió un error al verificar tu respuesta.");
-        
-        // Restaurar el estado en caso de error
-        document.getElementById('submit-answer-btn').disabled = false;
-        document.getElementById('answer-input').disabled = false;
-        isProcessingAnswer = false;
+            // Reproducir sonido
+            if (window.sounds) window.sounds.playClick();
+            
+            // Mantener enfoque en campo de respuesta
+            elements.answerInput.focus();
+        });
+    });
+    
+    // Botón de intentar de nuevo
+    if (elements.tryAgainBtn) {
+        elements.tryAgainBtn.addEventListener('click', () => {
+            // Reiniciar ejercicios con la misma operación
+            selectOperation(state.selectedGrade, state.selectedOperation);
+            if (window.sounds) window.sounds.playClick();
+        });
     }
-}
-
-/**
- * Actualiza la barra de progreso
- */
-function updateProgressBar() {
-    try {
-        const progressBar = document.getElementById('progress-bar');
-        if (!progressBar) return;
-        
-        const totalExercises = currentExercises ? currentExercises.length : 1;
-        const percentage = (currentExerciseIndex / totalExercises) * 100;
-        progressBar.style.width = `${percentage}%`;
-    } catch (error) {
-        console.error("Error al actualizar barra de progreso:", error);
+    
+    // Botón de seleccionar operación
+    if (elements.selectOperationBtn) {
+        elements.selectOperationBtn.addEventListener('click', () => {
+            loadOperations(state.selectedGrade);
+            showScreen('operationSelection');
+            if (window.sounds) window.sounds.playClick();
+        });
     }
-}
-
-/**
- * Finaliza el ejercicio y muestra resultados
- */
-function finishExercise() {
-    try {
-        const totalExercises = currentExercises.length;
-        
-        // Actualizar textos de resultados
-        document.getElementById('final-correct').textContent = correctCount;
-        document.getElementById('final-incorrect').textContent = incorrectCount;
-        
-        // Calcular porcentaje
-        const percentage = Math.round((correctCount / totalExercises) * 100);
-        document.getElementById('percentage').textContent = `${percentage}%`;
-        
-        // Calcular estrellas y actualizar progreso
-        const result = progress.updateProgress(selectedGrade, selectedOperation, correctCount, totalExercises);
-        
-        // Mostrar estrellas
-        updateResultStars(result.stars);
-        
-        // Mostrar mensaje de aprobación
-        const passingMessage = document.getElementById('passing-message');
-        
-        if (result.passed) {
-            passingMessage.textContent = '¡Has aprobado este nivel! Puedes continuar con otra operación.';
-            passingMessage.className = 'passing-message pass';
-        } else {
-            passingMessage.textContent = 'No has aprobado este nivel. Necesitas al menos 80% de aciertos para aprobar.';
-            passingMessage.className = 'passing-message fail';
-        }
-        
-        // Añadir información de precisión
-        /* if (result.precision) {
-            // Crear elemento para mostrar precisión si no existe
-            let precisionElement = document.getElementById('precision-display');
-            if (!precisionElement) {
-                precisionElement = document.createElement('div');
-                precisionElement.id = 'precision-display';
-                precisionElement.className = 'precision-display';
-                // Insertar después del porcentaje
-                const parentElement = document.querySelector('.result-item:nth-child(3)');
-                if (parentElement) {
-                    parentElement.parentNode.insertBefore(precisionElement, parentElement.nextSibling);
+    
+    // Botón de volver al inicio
+    if (elements.homeBtn) {
+        elements.homeBtn.addEventListener('click', () => {
+            showScreen('gradeSelection');
+            if (window.sounds) window.sounds.playClick();
+        });
+    }
+    
+    // Botón de volver al inicio desde progreso
+    if (elements.progressHomeBtn) {
+        elements.progressHomeBtn.addEventListener('click', () => {
+            showScreen('gradeSelection');
+            if (window.sounds) window.sounds.playClick();
+        });
+    }
+    
+    // Botón de ver progreso
+    if (elements.viewProgressBtn) {
+        elements.viewProgressBtn.addEventListener('click', () => {
+            // Si hay un grado seleccionado, cargar su progreso
+            // Si no, cargar el del primer grado
+            const grade = state.selectedGrade || 1;
+            loadProgressScreen(grade);
+            if (window.sounds) window.sounds.playClick();
+        });
+    }
+    
+    // Botón de cambiar grado en progreso
+    if (elements.progressChangeGradeBtn) {
+        elements.progressChangeGradeBtn.addEventListener('click', () => {
+            showScreen('gradeSelection');
+            if (window.sounds) window.sounds.playClick();
+        });
+    }
+    
+    // Botón de reiniciar progreso
+    if (elements.resetProgressBtn) {
+        elements.resetProgressBtn.addEventListener('click', () => {
+            modals.confirmMessage.textContent = "¿Estás seguro de que deseas reiniciar todo tu progreso? Esta acción no se puede deshacer.";
+            modals.confirm.classList.add('active');
+            
+            // Configurar botones de confirmación
+            modals.confirmYes.onclick = () => {
+                if (window.storage) {
+                    window.storage.resetProgress();
+                    modals.confirm.classList.remove('active');
+                    showScreen('gradeSelection');
+                    if (window.sounds) window.sounds.playClick();
+                }
+            };
+            
+            modals.confirmNo.onclick = () => {
+                modals.confirm.classList.remove('active');
+                if (window.sounds) window.sounds.playClick();
+            };
+        });
+    }
+    
+    // Botón de pista
+    document.querySelectorAll('.hint-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            if (state.currentScreen === 'exercise' && state.currentExerciseIndex < state.exercises.length) {
+                const currentExercise = state.exercises[state.currentExerciseIndex];
+                if (window.mascot) {
+                    window.mascot.giveHint(currentExercise);
                 }
             }
-            
-            // Actualizar contenido
-            precisionElement.innerHTML = `
-                <h3>Precisión</h3>
-                <div class="result-value precision-stat">
-                    <i class="fas fa-bullseye"></i> <span>${result.precision.text}</span>
-                </div>
-            `;
-        } */
-        
-        // Cambiar a pantalla de resultados
-        showScreen('results-screen');
-    } catch (error) {
-        console.error("Error al finalizar ejercicio:", error);
-        showErrorModal("Ocurrió un error al finalizar el ejercicio. Tus resultados podrían no haberse guardado correctamente.");
-        showScreen('operation-selection-screen');
+        });
+    });
+    
+    // Botones de modales
+    if (modals.errorOk) {
+        modals.errorOk.addEventListener('click', () => {
+            modals.error.classList.remove('active');
+        });
     }
-}
-
-/**
- * Actualiza las estrellas en la pantalla de resultados
- * @param {number} stars - Número de estrellas obtenidas
- */
-function updateResultStars(stars) {
-    try {
-        for (let i = 1; i <= 3; i++) {
-            const starElement = document.getElementById(`star-${i}`);
-            if (!starElement) continue;
-            
-            if (i <= stars) {
-                starElement.innerHTML = '<i class="fas fa-star"></i>';
-            } else {
-                starElement.innerHTML = '<i class="far fa-star"></i>';
-            }
-        }
-    } catch (error) {
-        console.error("Error al actualizar estrellas:", error);
+    
+    if (modals.reloadPage) {
+        modals.reloadPage.addEventListener('click', () => {
+            window.location.reload();
+        });
     }
-}
-
-
-/**
- * Carga la pantalla de progreso
- * Versión mejorada para mostrar precisión cuando se accede desde el botón "Ver Progreso"
- * @param {number} grade - Grado escolar
- */
-function loadProgressScreen(grade) {
-    try {
-        // Actualizar texto del grado
-        const suffix = getSuffix(grade);
-        document.getElementById('progress-grade-text').textContent = `${grade}${suffix} Grado`;
-        
-        // Obtener progreso del grado
-        const operationsProgress = progress.getGradeOperations(grade);
-        const gradeConfig = exercises.config[grade];
-        
-        if (!operationsProgress || !gradeConfig) {
-            console.error("Datos de progreso o configuración no disponibles");
-            return;
-        }
-        
-        // Obtener contenedor
-        const progressGrid = document.querySelector('.progress-grid');
-        progressGrid.innerHTML = '<div class="loading-indicator"><i class="fas fa-spinner fa-spin"></i> Cargando progreso...</div>';
-        
-        // Usar setTimeout para dar tiempo al indicador de carga a mostrarse
-        setTimeout(() => {
-            try {
-                // Limpiar el grid
-                progressGrid.innerHTML = '';
-                
-                // Usar DocumentFragment para mejor rendimiento
-                const fragment = document.createDocumentFragment();
-                
-                // Crear elementos para cada operación
-                for (const opKey in gradeConfig.operations) {
-                    const opConfig = gradeConfig.operations[opKey];
-                    // Si la operación no existe en el progreso, mostrar como no desbloqueada
-                    const opProgress = operationsProgress[opKey] || {
-                        unlocked: false,
-                        completed: false,
-                        stars: 0,
-                        correctCount: 0,
-                        totalCount: 0,
-                        precision: 0
-                    };
-                    
-                    // Crear elemento
-                    const progressOp = document.createElement('div');
-                    progressOp.className = 'progress-operation';
-                    
-                    // Aplicar clase según estado
-                    if (!opProgress.unlocked) {
-                        progressOp.classList.add('locked');
-                    } else if (opProgress.completed) {
-                        progressOp.classList.add('completed');
-                    }
-                    
-                    // Información de precisión mejorada (formato similar al proyecto anterior)
-                    let precisionHTML = '';
-                    if (opProgress.completed && opProgress.correctCount && opProgress.totalCount) {
-                        const precision = progress.calculatePrecision(opProgress.correctCount, opProgress.totalCount);
-                        precisionHTML = `
-                            <div class="progress-precision-container">
-                                <div class="progress-precision">
-                                    <span class="precision-value">Precisión: ${precision.text}</span>
-                                </div>
-                            </div>
-                        `;
-                    }
-                    
-                    // Estado con estrellas
-                    const starsHTML = getStarsHTML(opProgress.stars);
-                    
-                    // Obtener el nombre amigable de la operación
-                    const operationName = opConfig.name;
-                    
-                    // Icono para la operación
-                    const operationIcon = opConfig.icon || 'fa-calculator';
-                    
-                    // Contenido con formato mejorado
-                    progressOp.innerHTML = `
-                        <div class="progress-header">
-                            <div class="progress-name">
-                                <i class="fas ${operationIcon}"></i>
-                                ${operationName}
-                            </div>
-                            <div class="progress-stars">
-                                ${starsHTML}
-                            </div>
-                        </div>
-                        ${precisionHTML}
-                    `;
-                    
-                    fragment.appendChild(progressOp);
-                }
-                
-                progressGrid.appendChild(fragment);
-            } catch (error) {
-                console.error("Error en procesamiento de progreso:", error);
-                progressGrid.innerHTML = '<div style="text-align:center;color:red;padding:20px;">Ocurrió un error al cargar el progreso. Por favor, intenta actualizar la página.</div>';
-            }
-        }, 100);
-    } catch (error) {
-        console.error("Error al cargar pantalla de progreso:", error);
-        
-        // Mostrar mensaje de error en la interfaz
-        const progressGrid = document.querySelector('.progress-grid');
-        if (progressGrid) {
-            progressGrid.innerHTML = '<div style="text-align:center;color:red;padding:20px;">Ocurrió un error al cargar el progreso. Por favor, intenta actualizar la página.</div>';
-        }
+    
+    if (modals.helpOk) {
+        modals.helpOk.addEventListener('click', () => {
+            modals.help.classList.remove('active');
+        });
     }
-}
-
-/**
- * Reinicia todo el progreso
- */
-function resetAllProgress() {
-    try {
-        storage.resetProgress();
-        updateGradeCards();
-        showErrorModal('Tu progreso ha sido reiniciado correctamente.');
-        showScreen('grade-selection-screen');
-    } catch (error) {
-        console.error("Error al reiniciar progreso:", error);
-        showErrorModal("Ocurrió un error al reiniciar el progreso. Por favor, intenta actualizar la página.");
-    }
-}
+    
+    // Inicializar la aplicación
+    updateGradeCards();
+    
+    // Manejo global de errores
+    window.addEventListener('error', (e) => {
+        console.error('Error capturado:', e.error || e.message);
+        showError(`Ha ocurrido un error: ${e.message}`);
+    });
+});

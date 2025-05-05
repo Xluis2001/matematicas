@@ -23,7 +23,12 @@ const storage = {
         lastActivity: null,
         totalExercises: 0,
         totalCorrect: 0,
-        precision: 0,
+        globalPrecision: 0,
+        currentSession: {
+            date: null,
+            exercises: 0,
+            correct: 0
+        },
         achievements: [],
         grades: {
             1: {
@@ -31,10 +36,10 @@ const storage = {
                 completed: false,
                 stars: 0,
                 operations: {
-                    addition: { unlocked: true, completed: false, stars: 0, correctCount: 0, totalCount: 0, precision: 0, lastPlayed: null },
-                    subtraction: { unlocked: false, completed: false, stars: 0, correctCount: 0, totalCount: 0, precision: 0, lastPlayed: null },
-                    multiplication: { unlocked: false, completed: false, stars: 0, correctCount: 0, totalCount: 0, precision: 0, lastPlayed: null },
-                    division: { unlocked: false, completed: false, stars: 0, correctCount: 0, totalCount: 0, precision: 0, lastPlayed: null }
+                    addition: { unlocked: true, completed: false, stars: 0, correctCount: 0, totalCount: 0, precision: 0, lastPlayed: null, history: [] },
+                    subtraction: { unlocked: false, completed: false, stars: 0, correctCount: 0, totalCount: 0, precision: 0, lastPlayed: null, history: [] },
+                    multiplication: { unlocked: false, completed: false, stars: 0, correctCount: 0, totalCount: 0, precision: 0, lastPlayed: null, history: [] },
+                    division: { unlocked: false, completed: false, stars: 0, correctCount: 0, totalCount: 0, precision: 0, lastPlayed: null, history: [] }
                 }
             },
             2: {
@@ -42,10 +47,10 @@ const storage = {
                 completed: false,
                 stars: 0,
                 operations: {
-                    addition: { unlocked: true, completed: false, stars: 0, correctCount: 0, totalCount: 0, precision: 0, lastPlayed: null },
-                    subtraction: { unlocked: false, completed: false, stars: 0, correctCount: 0, totalCount: 0, precision: 0, lastPlayed: null },
-                    multiplication: { unlocked: false, completed: false, stars: 0, correctCount: 0, totalCount: 0, precision: 0, lastPlayed: null },
-                    division: { unlocked: false, completed: false, stars: 0, correctCount: 0, totalCount: 0, precision: 0, lastPlayed: null }
+                    addition: { unlocked: true, completed: false, stars: 0, correctCount: 0, totalCount: 0, precision: 0, lastPlayed: null, history: [] },
+                    subtraction: { unlocked: false, completed: false, stars: 0, correctCount: 0, totalCount: 0, precision: 0, lastPlayed: null, history: [] },
+                    multiplication: { unlocked: false, completed: false, stars: 0, correctCount: 0, totalCount: 0, precision: 0, lastPlayed: null, history: [] },
+                    division: { unlocked: false, completed: false, stars: 0, correctCount: 0, totalCount: 0, precision: 0, lastPlayed: null, history: [] }
                 }
             },
             3: {
@@ -53,10 +58,10 @@ const storage = {
                 completed: false,
                 stars: 0,
                 operations: {
-                    addition: { unlocked: true, completed: false, stars: 0, correctCount: 0, totalCount: 0, precision: 0, lastPlayed: null },
-                    subtraction: { unlocked: false, completed: false, stars: 0, correctCount: 0, totalCount: 0, precision: 0, lastPlayed: null },
-                    multiplication: { unlocked: false, completed: false, stars: 0, correctCount: 0, totalCount: 0, precision: 0, lastPlayed: null },
-                    division: { unlocked: false, completed: false, stars: 0, correctCount: 0, totalCount: 0, precision: 0, lastPlayed: null }
+                    addition: { unlocked: true, completed: false, stars: 0, correctCount: 0, totalCount: 0, precision: 0, lastPlayed: null, history: [] },
+                    subtraction: { unlocked: false, completed: false, stars: 0, correctCount: 0, totalCount: 0, precision: 0, lastPlayed: null, history: [] },
+                    multiplication: { unlocked: false, completed: false, stars: 0, correctCount: 0, totalCount: 0, precision: 0, lastPlayed: null, history: [] },
+                    division: { unlocked: false, completed: false, stars: 0, correctCount: 0, totalCount: 0, precision: 0, lastPlayed: null, history: [] }
                 }
             },
             4: {
@@ -64,10 +69,10 @@ const storage = {
                 completed: false,
                 stars: 0,
                 operations: {
-                    addition: { unlocked: true, completed: false, stars: 0, correctCount: 0, totalCount: 0, precision: 0, lastPlayed: null },
-                    subtraction: { unlocked: false, completed: false, stars: 0, correctCount: 0, totalCount: 0, precision: 0, lastPlayed: null },
-                    multiplication: { unlocked: false, completed: false, stars: 0, correctCount: 0, totalCount: 0, precision: 0, lastPlayed: null },
-                    division: { unlocked: false, completed: false, stars: 0, correctCount: 0, totalCount: 0, precision: 0, lastPlayed: null }
+                    addition: { unlocked: true, completed: false, stars: 0, correctCount: 0, totalCount: 0, precision: 0, lastPlayed: null, history: [] },
+                    subtraction: { unlocked: false, completed: false, stars: 0, correctCount: 0, totalCount: 0, precision: 0, lastPlayed: null, history: [] },
+                    multiplication: { unlocked: false, completed: false, stars: 0, correctCount: 0, totalCount: 0, precision: 0, lastPlayed: null, history: [] },
+                    division: { unlocked: false, completed: false, stars: 0, correctCount: 0, totalCount: 0, precision: 0, lastPlayed: null, history: [] }
                 }
             },
             5: {
@@ -75,12 +80,12 @@ const storage = {
                 completed: false,
                 stars: 0,
                 operations: {
-                    addition: { unlocked: true, completed: false, stars: 0, correctCount: 0, totalCount: 0, precision: 0, lastPlayed: null },
-                    subtraction: { unlocked: false, completed: false, stars: 0, correctCount: 0, totalCount: 0, precision: 0, lastPlayed: null },
-                    multiplication: { unlocked: false, completed: false, stars: 0, correctCount: 0, totalCount: 0, precision: 0, lastPlayed: null },
-                    division: { unlocked: false, completed: false, stars: 0, correctCount: 0, totalCount: 0, precision: 0, lastPlayed: null },
-                    fractions: { unlocked: false, completed: false, stars: 0, correctCount: 0, totalCount: 0, precision: 0, lastPlayed: null },
-                    decimals: { unlocked: false, completed: false, stars: 0, correctCount: 0, totalCount: 0, precision: 0, lastPlayed: null }
+                    addition: { unlocked: true, completed: false, stars: 0, correctCount: 0, totalCount: 0, precision: 0, lastPlayed: null, history: [] },
+                    subtraction: { unlocked: false, completed: false, stars: 0, correctCount: 0, totalCount: 0, precision: 0, lastPlayed: null, history: [] },
+                    multiplication: { unlocked: false, completed: false, stars: 0, correctCount: 0, totalCount: 0, precision: 0, lastPlayed: null, history: [] },
+                    division: { unlocked: false, completed: false, stars: 0, correctCount: 0, totalCount: 0, precision: 0, lastPlayed: null, history: [] },
+                    fractions: { unlocked: false, completed: false, stars: 0, correctCount: 0, totalCount: 0, precision: 0, lastPlayed: null, history: [] },
+                    decimals: { unlocked: false, completed: false, stars: 0, correctCount: 0, totalCount: 0, precision: 0, lastPlayed: null, history: [] }
                 }
             },
             6: {
@@ -88,14 +93,14 @@ const storage = {
                 completed: false,
                 stars: 0,
                 operations: {
-                    addition: { unlocked: true, completed: false, stars: 0, correctCount: 0, totalCount: 0, precision: 0, lastPlayed: null },
-                    subtraction: { unlocked: false, completed: false, stars: 0, correctCount: 0, totalCount: 0, precision: 0, lastPlayed: null },
-                    multiplication: { unlocked: false, completed: false, stars: 0, correctCount: 0, totalCount: 0, precision: 0, lastPlayed: null },
-                    division: { unlocked: false, completed: false, stars: 0, correctCount: 0, totalCount: 0, precision: 0, lastPlayed: null },
-                    fractions: { unlocked: false, completed: false, stars: 0, correctCount: 0, totalCount: 0, precision: 0, lastPlayed: null },
-                    decimals: { unlocked: false, completed: false, stars: 0, correctCount: 0, totalCount: 0, precision: 0, lastPlayed: null },
-                    powers: { unlocked: false, completed: false, stars: 0, correctCount: 0, totalCount: 0, precision: 0, lastPlayed: null },
-                    percentages: { unlocked: false, completed: false, stars: 0, correctCount: 0, totalCount: 0, precision: 0, lastPlayed: null }
+                    addition: { unlocked: true, completed: false, stars: 0, correctCount: 0, totalCount: 0, precision: 0, lastPlayed: null, history: [] },
+                    subtraction: { unlocked: false, completed: false, stars: 0, correctCount: 0, totalCount: 0, precision: 0, lastPlayed: null, history: [] },
+                    multiplication: { unlocked: false, completed: false, stars: 0, correctCount: 0, totalCount: 0, precision: 0, lastPlayed: null, history: [] },
+                    division: { unlocked: false, completed: false, stars: 0, correctCount: 0, totalCount: 0, precision: 0, lastPlayed: null, history: [] },
+                    fractions: { unlocked: false, completed: false, stars: 0, correctCount: 0, totalCount: 0, precision: 0, lastPlayed: null, history: [] },
+                    decimals: { unlocked: false, completed: false, stars: 0, correctCount: 0, totalCount: 0, precision: 0, lastPlayed: null, history: [] },
+                    powers: { unlocked: false, completed: false, stars: 0, correctCount: 0, totalCount: 0, precision: 0, lastPlayed: null, history: [] },
+                    percentages: { unlocked: false, completed: false, stars: 0, correctCount: 0, totalCount: 0, precision: 0, lastPlayed: null, history: [] }
                 }
             }
         }
@@ -108,7 +113,7 @@ const storage = {
         soundEnabled: true,
         soundVolume: 0.7,
         showHints: true,
-        showTimer: true,   // CAMBIA ESTA LÍNEA
+        showTimer: true,
         timerDuration: 25,
         theme: 'default',
         difficultyLevel: 'normal', // easy, normal, hard
@@ -262,7 +267,15 @@ const storage = {
             // Verificar campos principales
             if (typeof data.totalExercises === 'undefined') data.totalExercises = 0;
             if (typeof data.totalCorrect === 'undefined') data.totalCorrect = 0;
-            if (typeof data.precision === 'undefined') data.precision = 0;
+            if (typeof data.globalPrecision === 'undefined') data.globalPrecision = 0;
+            if (!data.currentSession) {
+                data.currentSession = {
+                    date: null,
+                    exercises: 0,
+                    correct: 0
+                };
+                updated = true;
+            }
             if (!Array.isArray(data.achievements)) data.achievements = [];
             
             // Verificar estructura de grados
@@ -339,6 +352,11 @@ const storage = {
                         
                         if (typeof opData.lastPlayed === 'undefined') {
                             opData.lastPlayed = null;
+                            updated = true;
+                        }
+                        
+                        if (!Array.isArray(opData.history)) {
+                            opData.history = [];
                             updated = true;
                         }
                     }
@@ -472,81 +490,6 @@ const storage = {
      * @param {number} correctCount - Respuestas correctas
      * @param {number} totalCount - Total de ejercicios
      */
-
-    /**
-     * Verifica si una operación está desbloqueada
-     * @param {number} grade - Grado escolar
-     * @param {string} operation - Nombre de la operación
-     * @returns {boolean} true si está desbloqueada
-     */
-    isOperationUnlocked: function(grade, operation) {
-        try {
-            const op = this.getOperation(grade, operation);
-            return op && op.unlocked;
-        } catch (error) {
-            console.error("Error al verificar desbloqueo de operación:", error);
-            return false;
-        }
-    },
-
-    /**
-     * Verifica si una operación está completada
-     * @param {number} grade - Grado escolar
-     * @param {string} operation - Nombre de la operación
-     * @returns {boolean} true si está completada
-     */
-    isOperationCompleted: function(grade, operation) {
-        try {
-            const op = this.getOperation(grade, operation);
-            return op && op.completed;
-        } catch (error) {
-            console.error("Error al verificar completado de operación:", error);
-            return false;
-        }
-    },
-
-    /**
-     * Obtiene el número de estrellas para una operación
-     * @param {number} grade - Grado escolar
-     * @param {string} operation - Nombre de la operación
-     * @returns {number} Número de estrellas (0-3)
-     */
-    getOperationStars: function(grade, operation) {
-        try {
-            if (!this.getOperation) return 0;
-            
-            const op = this.getOperation(grade, operation);
-            return op ? op.stars : 0;
-        } catch (error) {
-            console.error("Error al obtener estrellas:", error);
-            return 0;
-        }
-    },
-
-    /**
-     * Obtiene la precisión para una operación
-     * @param {number} grade - Grado escolar
-     * @param {string} operation - Nombre de la operación
-     * @returns {Object} Objeto con la información de precisión
-     */
-    getOperationPrecision: function(grade, operation) {
-        try {
-            const op = this.getOperation(grade, operation);
-            if (!op || !op.correctCount || !op.totalCount) {
-                return { percent: 0, text: "0/0 intentos (0%)" };
-            }
-            
-            const percent = op.totalCount > 0 ? Math.round((op.correctCount / op.totalCount) * 100) : 0;
-            return { 
-                percent, 
-                text: `${op.correctCount}/${op.totalCount} intentos (${percent}%)` 
-            };
-        } catch (error) {
-            console.error("Error al obtener precisión:", error);
-            return { percent: 0, text: "0/0 intentos (0%)" };
-        }
-    },
-
     updateOperation(grade, operation, completed, stars, correctCount, totalCount) {
         const data = this.getData();
         const op = data.grades[grade].operations[operation];
@@ -568,25 +511,49 @@ const storage = {
             this.addAchievement(`complete_${grade}_${operation}`, `¡Completaste ${operation} de ${grade}º grado!`);
         }
         
-        // Actualizar datos de precisión
+        // CAMBIO PRINCIPAL: Reemplazar en lugar de acumular los datos de precisión
         if (correctCount !== undefined && totalCount !== undefined) {
-            op.correctCount = (op.correctCount || 0) + correctCount;
-            op.totalCount = (op.totalCount || 0) + totalCount;
-            op.precision = op.totalCount > 0 ? Math.round((op.correctCount / op.totalCount) * 100) : 0;
+            // Almacenar historial
+            if (!op.history) op.history = [];
+            op.history.push({
+                date: new Date().toISOString(),
+                correctCount: correctCount,
+                totalCount: totalCount,
+                percent: Math.round((correctCount / totalCount) * 100)
+            });
+            
+            // Mantener solo las últimas 10 sesiones en el historial
+            if (op.history.length > 10) {
+                op.history = op.history.slice(-10);
+            }
+            
+            // Reemplazar los valores actuales con los de la última sesión
+            op.correctCount = correctCount;
+            op.totalCount = totalCount;
+            op.precision = totalCount > 0 ? Math.round((correctCount / totalCount) * 100) : 0;
         }
         
         // Actualizar fecha de último juego
         op.lastPlayed = new Date().toISOString();
         
         // Actualizar estadísticas globales
+        // Mantener las estadísticas de la sesión actual
+        data.currentSession = {
+            date: new Date().toISOString(),
+            exercises: totalCount,
+            correct: correctCount
+        };
+        
+        // Acumular en estadísticas históricas solo para referencia
         data.totalExercises = (data.totalExercises || 0) + totalCount;
         data.totalCorrect = (data.totalCorrect || 0) + correctCount;
-        data.precision = data.totalExercises > 0 ? Math.round((data.totalCorrect / data.totalExercises) * 100) : 0;
+        data.globalPrecision = data.totalExercises > 0 ? 
+            Math.round((data.totalCorrect / data.totalExercises) * 100) : 0;
         
         this.saveData(data);
         this.checkGradeComplete(grade);
         this.checkGradeUnlock(grade);
-            // Verificar si se debe desbloquear la siguiente operación
+        // Verificar si se debe desbloquear la siguiente operación
         if (completed) {
             this.checkOperationUnlock(grade, operation);
         }    
@@ -769,6 +736,98 @@ const storage = {
     isGradeCompleted(grade) {
         const gradeData = this.getGrade(grade);
         return gradeData && gradeData.completed;
+    },
+    
+    /**
+     * Verifica si una operación está desbloqueada
+     * @param {number} grade - Grado escolar
+     * @param {string} operation - Nombre de la operación
+     * @returns {boolean} true si está desbloqueada
+     */
+    isOperationUnlocked: function(grade, operation) {
+        try {
+            const op = this.getOperation(grade, operation);
+            return op && op.unlocked;
+        } catch (error) {
+            console.error("Error al verificar desbloqueo de operación:", error);
+            return false;
+        }
+    },
+
+    /**
+     * Verifica si una operación está completada
+     * @param {number} grade - Grado escolar
+     * @param {string} operation - Nombre de la operación
+     * @returns {boolean} true si está completada
+     */
+    isOperationCompleted: function(grade, operation) {
+        try {
+            const op = this.getOperation(grade, operation);
+            return op && op.completed;
+        } catch (error) {
+            console.error("Error al verificar completado de operación:", error);
+            return false;
+        }
+    },
+
+    /**
+     * Obtiene el número de estrellas para una operación
+     * @param {number} grade - Grado escolar
+     * @param {string} operation - Nombre de la operación
+     * @returns {number} Número de estrellas (0-3)
+     */
+    getOperationStars: function(grade, operation) {
+        try {
+            if (!this.getOperation) return 0;
+            
+            const op = this.getOperation(grade, operation);
+            return op ? op.stars : 0;
+        } catch (error) {
+            console.error("Error al obtener estrellas:", error);
+            return 0;
+        }
+    },
+
+    /**
+     * Obtiene la precisión para una operación - MODIFICADO PARA MOSTRAR SOLO SESIÓN ACTUAL
+     * @param {number} grade - Grado escolar
+     * @param {string} operation - Nombre de la operación
+     * @returns {Object} Objeto con la información de precisión
+     */
+    getOperationPrecision: function(grade, operation) {
+        try {
+            const op = this.getOperation(grade, operation);
+            if (!op || typeof op.correctCount === 'undefined' || typeof op.totalCount === 'undefined' || op.totalCount === 0) {
+                return { percent: 0, text: "0/0 intentos (0%)" };
+            }
+            
+            // Usar solo los valores de la sesión actual (no acumulativos)
+            const percent = op.precision;
+            return { 
+                percent, 
+                text: `${op.correctCount}/${op.totalCount} intentos (${percent}%)` 
+            };
+        } catch (error) {
+            console.error("Error al obtener precisión:", error);
+            return { percent: 0, text: "0/0 intentos (0%)" };
+        }
+    },
+    
+    /**
+     * Obtiene información de todas las operaciones para un grado
+     * @param {number} grade - Grado escolar
+     * @returns {Object} Información de operaciones
+     */
+    getGradeOperations: function(grade) {
+        try {
+            if (!window.storage) return {};
+            
+            const gradeData = window.storage.getGrade(grade);
+            return gradeData ? gradeData.operations : {};
+        } catch (error) {
+            console.error("Error al obtener operaciones de grado:", error);
+            return {};
+        }
     },
     
     /**

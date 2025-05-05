@@ -185,6 +185,11 @@
                         </button>
                     </div>
                     
+                    <!-- Botón para mostrar/ocultar el teclado numérico -->
+                    <button id="toggle-keyboard" class="numeric-keyboard-toggle">
+                        <i class="fas fa-keyboard"></i> Mostrar teclado
+                    </button>
+                    
                     <!-- Teclado numérico para móviles -->
                     <div class="numeric-keyboard" id="numeric-keyboard">
                         <button class="keyboard-key" data-key="1">1</button>
@@ -341,7 +346,6 @@
         </footer>
         
         <!-- Efecto de confeti para celebraciones -->
-        <!-- <div id="confetti-container" class="confetti-container"></div> -->
         <div id="confetti-container" class="confetti-container">
             <canvas id="confetti-canvas" style="width:100%; height:100%"></canvas>
         </div>
@@ -430,6 +434,7 @@
     <audio id="sound-star" src="sounds/star.mp3" preload="auto"></audio>
 
     <script src="mini-confetti-clasico.js"></script>
+    <script src="module-manager.js"></script>
     <script src="storage.js"></script>
     <script src="exercises.js"></script>
     <script src="progress.js"></script>

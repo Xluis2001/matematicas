@@ -73,6 +73,19 @@ body {
     background-size: 200px;
     background-repeat: repeat;
     background-attachment: fixed;
+    position: relative;
+}
+
+/* Capa semi-transparente sobre el fondo */
+body::before {
+    content: "";
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(255, 255, 255, 0.8); /* Blanco semi-transparente */
+    z-index: -1;
 }
 
 /* Contenedor principal de la app */
@@ -97,11 +110,28 @@ body {
     z-index: 10;
 }
 
+.main-header::before {
+    content: "";
+    position: absolute;
+    top: -10px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 90%;
+    max-width: 800px;
+    height: calc(100% + 20px);
+    background-color: rgba(255, 255, 255, 0.85); /* Fondo blanco semi-transparente */
+    border-radius: 20px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    z-index: -1;
+}
+
 .logo-container {
     display: flex;
     align-items: center;
     margin-bottom: 0.5rem;
     animation: bounce 2s infinite alternate;
+    position: relative;
+    z-index: 10;
 }
 
 .logo-icon {
@@ -122,7 +152,10 @@ body {
     font-size: 2.5rem;
     font-weight: 800;
     color: var(--primary-dark);
-    text-shadow: 2px 2px 0px var(--primary-light);
+    text-shadow: 2px 2px 0px var(--primary-light), 
+                 0 0 10px rgba(255, 255, 255, 0.7), 
+                 0 0 20px rgba(255, 255, 255, 0.9), 
+                 0 0 30px rgba(255, 255, 255, 0.5);
 }
 
 .version {
@@ -137,9 +170,18 @@ body {
 }
 
 .tagline {
-    font-size: 1.25rem;
     color: var(--secondary-dark);
-    font-weight: 600;
+    font-weight: 700;
+    font-size: 1.4rem;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2),
+                 0 0 10px rgba(255, 255, 255, 0.7),
+                 0 0 15px rgba(255, 255, 255, 0.9);
+    background-color: rgba(255, 255, 255, 0.6);
+    padding: 6px 16px;
+    border-radius: 20px;
+    display: inline-block;
+    border: 2px solid rgba(255, 152, 0, 0.3); /* Border en tono naranja semi-transparente */
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
 }
 
 /* Contenido principal */
@@ -763,7 +805,27 @@ body {
     color: #BDBDBD;
 }
 
-/* Teclado numérico */
+/* Botón para mostrar/ocultar teclado numérico */
+.numeric-keyboard-toggle {
+    display: none; /* Por defecto oculto */
+    text-align: center;
+    padding: 0.5rem;
+    margin: 0.5rem auto;
+    font-size: 0.9rem;
+    background: var(--bg-color);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    width: 150px;
+    transition: var(--transition-fast);
+}
+
+.numeric-keyboard-toggle:hover {
+    background: var(--primary-light);
+    color: var(--primary-dark);
+}
+
+/* Teclado numérico - siempre visible en PC */
 .numeric-keyboard {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
@@ -771,6 +833,17 @@ body {
     width: 100%;
     max-width: 400px;
     margin-top: 1rem;
+    transition: all 0.3s ease;
+}
+
+/* Estilo para cuando está colapsado */
+.numeric-keyboard.collapsed {
+    height: 0;
+    overflow: hidden;
+    margin: 0;
+    padding: 0;
+    opacity: 0;
+    pointer-events: none;
 }
 
 .keyboard-key {
@@ -948,6 +1021,10 @@ body {
 
 .star i.fas {
     color: #FFD700;
+}
+
+.star.animate {
+    animation: starAnimation 0.8s;
 }
 
 /* Mensaje de aprobación */
@@ -1216,21 +1293,6 @@ body {
     line-height: 1.4;
 }
 
-/* Asegurar que la mascota sea visible en pantallas pequeñas */
-@media (max-width: 600px) {
-    .mascot {
-        left: 20%; /* Aún más a la derecha en pantallas pequeñas */
-        width: 6rem; /* Un poco más pequeña en móviles */
-        height: 6rem;
-    }
-    
-    .speech-bubble {
-        min-width: 14rem;
-        max-width: 16rem;
-        font-size: 1rem;
-    }
-}
-
 /* Área de pistas */
 .hint-area {
     position: fixed;
@@ -1355,7 +1417,7 @@ body {
     display: none !important;
 }
 
-/* Responsive */
+/* Responsive para tablets */
 @media (max-width: 900px) {
     .grade-grid {
         grid-template-columns: repeat(2, 1fr);
@@ -1376,6 +1438,34 @@ body {
     }
 }
 
+/* Responsive para móviles */
+@media (max-width: 768px) {
+    /* Mostrar botón del teclado y ocultar teclado inicialmente */
+    .numeric-keyboard-toggle {
+        display: block;
+    }
+    
+    .numeric-keyboard {
+        gap: 0.5rem;
+        max-width: 90%;
+    }
+    
+    .numeric-keyboard.collapsed {
+        height: 0;
+        opacity: 0;
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+    }
+    
+    .keyboard-key {
+        padding: 0.6rem;
+        font-size: 1.3rem;
+        height: 2.5rem;
+    }
+}
+
+/* Responsive para móviles pequeños */
 @media (max-width: 600px) {
     html {
         font-size: 14px;
@@ -1383,11 +1473,6 @@ body {
     
     .screen {
         padding: 1.5rem;
-    }
-    
-    .grade-grid {
-        grid-template-columns: 1fr;
-        max-width: 300px;
     }
     
     .button-container {
@@ -1412,11 +1497,50 @@ body {
         justify-content: space-around;
     }
     
-    .mascot {
+    /* Ajustes para tarjetas de grado */
+    .grade-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1rem;
+        max-width: 100%;
+        padding: 0 0.5rem;
+    }
+    
+    .grade-card {
+        transform: scale(0.95);
+    }
+    
+    .grade-icon {
         width: 4.5rem;
         height: 4.5rem;
-        bottom: 1rem;
-        left: 1rem;
+    }
+    
+    .grade-number {
+        font-size: 1.8rem;
+    }
+    
+    /* Ajustes para la mascota */
+    .mascot {
+        width: 6rem;
+        height: 6rem;
+        bottom: 1.5rem;
+        left: 1.5rem;
+        z-index: 150;
+    }
+    
+    .speech-bubble {
+        min-width: 14rem;
+        max-width: 18rem;
+        bottom: 130%;
+        left: 30%;
+        border-width: 2px;
+        transform: translateX(-20%);
+        font-size: 0.95rem;
+        z-index: 151;
+    }
+    
+    .speech-bubble::after,
+    .speech-bubble::before {
+        left: 25%;
     }
     
     .footer-content {
@@ -1430,78 +1554,14 @@ body {
     }
 }
 
-/* Animaciones específicas para componentes */
-.star.animate {
-    animation: starAnimation 0.8s;
-}
-
-/* Mejora para el encabezado principal */
-.main-header {
-    position: relative;
-    z-index: 10;
-}
-
-.logo-container {
-    position: relative;
-    z-index: 10;
-}
-
-/* Fondo para el encabezado */
-.main-header::before {
-    content: "";
-    position: absolute;
-    top: -10px;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 90%;
-    max-width: 800px;
-    height: calc(100% + 20px);
-    background-color: rgba(255, 255, 255, 0.85); /* Fondo blanco semi-transparente */
-    border-radius: 20px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-    z-index: -1;
-}
-
-/* Mejora para el tagline */
-.tagline {
-    color: var(--secondary-dark);
-    font-weight: 700;
-    font-size: 1.4rem;
-    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2),
-                 0 0 10px rgba(255, 255, 255, 0.7),
-                 0 0 15px rgba(255, 255, 255, 0.9);
-    background-color: rgba(255, 255, 255, 0.6);
-    padding: 6px 16px;
-    border-radius: 20px;
-    display: inline-block;
-    border: 2px solid rgba(255, 152, 0, 0.3); /* Border en tono naranja semi-transparente */
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
-}
-
-/* Mejora para el logo */
-.logo-text {
-    text-shadow: 2px 2px 0px var(--primary-light), 
-                 0 0 10px rgba(255, 255, 255, 0.7), 
-                 0 0 20px rgba(255, 255, 255, 0.9), 
-                 0 0 30px rgba(255, 255, 255, 0.5);
-}
-/* Hacer más opaco el fondo con patrón */
-body {
-    background-image: url('images/bg-pattern.png');
-    background-size: 200px;
-    background-repeat: repeat;
-    background-attachment: fixed;
-    position: relative;
-}
-
-/* Capa semi-transparente sobre el fondo */
-body::before {
-    content: "";
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(255, 255, 255, 0.8); /* Blanco semi-transparente */
-    z-index: -1;
+/* Pantallas muy pequeñas */
+@media (max-width: 360px) {
+    .grade-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .mascot {
+        width: 5rem;
+        height: 5rem;
+    }
 }

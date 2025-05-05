@@ -1,6 +1,6 @@
 /**
  * Módulo para la gestión de la mascota interactiva
- * Permite mostrar mensajes, cambiar estados de ánimo y proporcionar pistas
+ * Versión mejorada para asegurar la visualización correcta de todos los estados
  */
 
 const mascot = {
@@ -54,6 +54,8 @@ const mascot = {
      */
     initialize: function() {
         try {
+            console.log("Inicializando mascota...");
+            
             // Obtener referencias a los elementos
             this.elements.container = document.getElementById('mascot');
             this.elements.image = document.getElementById('mascot-img');
@@ -65,6 +67,9 @@ const mascot = {
                 console.warn('No se encontraron todos los elementos de la mascota');
                 return;
             }
+            
+            // Establecer estado inicial visible
+            this.setState('happy');
             
             // Configurar evento de clic
             this.elements.container.addEventListener('click', () => {
@@ -148,6 +153,14 @@ const mascot = {
      */
     speak: function(message, duration = 5000) {
         try {
+            // Si la mascota no es visible, no mostrar burbuja
+            if (this.elements.container.style.display === 'none' || 
+                this.elements.container.style.visibility === 'hidden' ||
+                this.elements.container.style.opacity === '0') {
+                console.log('Mascota no visible, no se muestra burbuja de diálogo');
+                return;
+            }
+            
             // Limpiar timeout anterior si existe
             if (this.speechTimeout) {
                 clearTimeout(this.speechTimeout);
@@ -159,10 +172,13 @@ const mascot = {
             
             // Mostrar burbuja de diálogo
             this.elements.speech.classList.remove('hidden');
+            this.elements.speech.style.display = 'block';
             this.speechVisible = true;
             
             // Cambiar a estado "hablando"
-            this.setState('excited');
+            if (!this.persistState) {
+                this.setState('excited');
+            }
             
             // Configurar ocultamiento automático si se especifica duración
             if (duration > 0) {
@@ -176,15 +192,52 @@ const mascot = {
     },
     
     /**
-     * Oculta la burbuja de diálogo
+     * Limpia todos los elementos visuales de la mascota
+     * Útil cuando se cambia de pantalla o se reinicia la aplicación
      */
-    hideSpeech: function() {
+    cleanup: function() {
         try {
+            // Limpiar timeout
+            if (this.speechTimeout) {
+                clearTimeout(this.speechTimeout);
+                this.speechTimeout = null;
+            }
+            
+            // Ocultar burbuja de diálogo
             this.elements.speech.classList.add('hidden');
             this.speechVisible = false;
             
-            // Volver al estado normal
+            // Reiniciar estado
+            this.persistState = false;
             this.setState('happy');
+            
+            console.log('Mascota limpiada correctamente');
+        } catch (error) {
+            console.error('Error al limpiar mascota:', error);
+        }
+    },
+
+    /**
+     * Oculta la burbuja de diálogo
+     * Versión mejorada para que se sincronice con la mascota
+     */
+    hideSpeech: function() {
+        try {
+            // Si no hay burbuja visible, no hacer nada
+            if (!this.speechVisible) return;
+            
+            this.elements.speech.classList.add('hidden');
+            this.speechVisible = false;
+            
+            console.log('Burbuja de diálogo ocultada');
+            
+            // Si la mascota desaparece, también debe desaparecer la burbuja
+            if (this.elements.container.style.display === 'none' || 
+                this.elements.container.style.visibility === 'hidden' ||
+                this.elements.container.style.opacity === '0') {
+                console.log('Mascota no visible, asegurando que la burbuja también esté oculta');
+                this.elements.speech.style.display = 'none';
+            }
         } catch (error) {
             console.error('Error al ocultar burbuja de diálogo:', error);
         }
@@ -193,18 +246,75 @@ const mascot = {
     /**
      * Cambia el estado de ánimo de la mascota
      * @param {string} state - Nuevo estado (happy, thinking, excited, sad)
+     * @param {boolean} forcePersist - Si se debe persistir el estado incluso si hay otros cambios
      */
-    setState: function(state) {
+    setState: function(state, forcePersist = false) {
         try {
-            if (this.state === state) return;
+            // Si ya está en ese estado, no hacer nada
+            if (this.state === state && !forcePersist) return;
+            
+            // Validar estado
+            const validStates = ['happy', 'thinking', 'excited', 'sad'];
+            if (!validStates.includes(state)) {
+                console.warn(`Estado inválido: ${state}, usando 'happy' por defecto`);
+                state = 'happy';
+            }
+            
+            // Si el estado anterior era "thinking" y forcePersist estaba activado,
+            // ignorar cambios a menos que explícitamente se use forcePersist de nuevo
+            if (this.state === 'thinking' && this.persistState && !forcePersist) {
+                console.log(`Manteniendo estado 'thinking' activo (ignorando cambio a ${state})`);
+                return;
+            }
             
             this.state = state;
+            this.persistState = forcePersist;
             
-            // Actualizar imagen según el estado
+            // Construir la ruta de la imagen
             const imgPath = `images/mascot-${state}.png`;
-            this.elements.image.src = imgPath;
+            console.log(`Cambiando estado a: ${state}, cargando imagen: ${imgPath}`);
             
-            console.log(`Estado de la mascota cambiado a: ${state}`);
+            // SOLUCIÓN: Forzar actualización de imagen para evitar problemas de cacheo
+            const timestamp = new Date().getTime();
+            const forcedImgPath = `${imgPath}?t=${timestamp}`;
+            
+            // Guardar referencia al elemento imagen
+            const imgElement = this.elements.image;
+            
+            // Configurar manejador de eventos para verificar la carga correcta
+            imgElement.onload = () => {
+                console.log(`Imagen para estado '${state}' cargada correctamente`);
+                // Asegurar que la imagen es visible
+                imgElement.style.display = 'block';
+                imgElement.style.visibility = 'visible';
+                imgElement.style.opacity = '1';
+            };
+            
+            imgElement.onerror = () => {
+                console.error(`Error al cargar imagen para estado '${state}': ${forcedImgPath}`);
+                // Volver al estado happy si hay error
+                if (state !== 'happy') {
+                    imgElement.src = `images/mascot-happy.png?t=${timestamp}`;
+                }
+            };
+            
+            // Forzar un cambio visible usando técnica de descargar/recargar
+            imgElement.style.transition = 'none';
+            imgElement.style.opacity = '0.5';
+            
+            // Usar setTimeout para asegurar que el cambio visual ocurra
+            setTimeout(() => {
+                // Cambiar la imagen
+                imgElement.src = forcedImgPath;
+                
+                // Animar la transición de vuelta a opacidad completa
+                setTimeout(() => {
+                    imgElement.style.transition = 'opacity 0.2s ease-in-out';
+                    imgElement.style.opacity = '1';
+                }, 50);
+            }, 20);
+            
+            console.log(`Estado de la mascota cambiado a: ${state}${forcePersist ? ' (persistente)' : ''}`);
         } catch (error) {
             console.error('Error al cambiar estado de la mascota:', error);
         }
@@ -220,6 +330,9 @@ const mascot = {
             let message = '';
             let state = 'happy';
             let duration = 4000;
+            let keepState = false; // Nueva variable para mantener el estado
+            
+            console.log(`Mascota reaccionando al evento: ${event}`);
             
             // Determinar mensaje y estado según el evento
             switch (event) {
@@ -244,6 +357,8 @@ const mascot = {
                         message = "¡No te preocupes! Sigue intentando.";
                     }
                     state = 'sad';
+                    keepState = true; // Mantener estado triste mientras habla
+                    duration = 3000; // Duración más larga para el mensaje
                     break;
                     
                 case 'levelComplete':
@@ -259,6 +374,7 @@ const mascot = {
                 case 'hint':
                     message = data.hint || "Intenta resolver el problema paso a paso.";
                     state = 'thinking';
+                    keepState = true; // Mantener estado pensativo mientras da la pista
                     duration = 8000; // Mantener la pista visible más tiempo
                     break;
                     
@@ -271,16 +387,71 @@ const mascot = {
                     state = 'excited';
                     break;
                     
+                case 'idle':
+                    message = this.getRandomMessage('encouragement');
+                    state = 'happy';
+                    break;
+                    
+                case 'thinking':
+                    message = "Hmmm, estoy pensando...";
+                    state = 'thinking';
+                    keepState = true;
+                    break;
+                    
                 default:
                     message = this.getRandomMessage('encouragement');
                     break;
             }
             
-            // Cambiar estado y mostrar mensaje
+            console.log(`Cambiando a estado: ${state} con mensaje: "${message}"`);
+            
+            // Cambiar estado
             this.setState(state);
-            this.speak(message, duration);
+            
+            // Mostrar mensaje sin cambiar el estado si keepState es true
+            if (message) {
+                // Modificación a la función speak para mantener el estado actual
+                this.speakKeepingState(message, duration, keepState);
+            }
         } catch (error) {
             console.error('Error al reaccionar a evento:', error);
+        }
+    },
+
+    /**
+     * Hace que la mascota diga un mensaje manteniendo su estado actual
+     * @param {string} message - Mensaje a mostrar
+     * @param {number} duration - Duración en milisegundos
+     * @param {boolean} keepState - Si se debe mantener el estado actual
+     */
+    speakKeepingState: function(message, duration = 5000, keepState = false) {
+        try {
+            // Limpiar timeout anterior si existe
+            if (this.speechTimeout) {
+                clearTimeout(this.speechTimeout);
+                this.speechTimeout = null;
+            }
+            
+            // Establecer mensaje
+            this.elements.text.textContent = message;
+            
+            // Mostrar burbuja de diálogo
+            this.elements.speech.classList.remove('hidden');
+            this.speechVisible = true;
+            
+            // Cambiar a estado "hablando" solo si no se debe mantener el estado actual
+            if (!keepState) {
+                this.setState('excited');
+            }
+            
+            // Configurar ocultamiento automático si se especifica duración
+            if (duration > 0) {
+                this.speechTimeout = setTimeout(() => {
+                    this.hideSpeech();
+                }, duration);
+            }
+        } catch (error) {
+            console.error('Error al hacer hablar a la mascota:', error);
         }
     },
     
@@ -339,13 +510,90 @@ const mascot = {
         } catch (error) {
             console.error('Error al dar pista:', error);
         }
+    },
+    
+    /**
+     * Muestra la mascota en modo pensativo y luego da una pista
+     * @param {Object} exercise - Ejercicio actual
+     */
+    thinkAndGiveHint: function(exercise) {
+        try {
+            // Primero mostrar en modo pensativo
+            this.react('thinking');
+            
+            // Después de un breve retraso, mostrar la pista
+            setTimeout(() => {
+                this.giveHint(exercise);
+            }, 1500);
+        } catch (error) {
+            console.error('Error al pensar y dar pista:', error);
+        }
+    },
+    
+    /**
+     * Celebra el logro de un objetivo
+     * @param {string} message - Mensaje de celebración
+     */
+    celebrate: function(message) {
+        try {
+            // Cambiar a estado emocionado y mostrar mensaje de celebración
+            this.setState('excited');
+            this.speak(message || "¡Felicidades! ¡Lo lograste!", 6000);
+            
+            // Activar confeti si está disponible
+            if (window.animations && typeof window.animations.showConfetti === 'function') {
+                window.animations.showConfetti();
+            }
+        } catch (error) {
+            console.error('Error al celebrar:', error);
+        }
+    },
+    
+    /**
+     * Recarga forzada de todas las imágenes de estados
+     * Útil cuando hay problemas de visualización
+     */
+    reloadAllStateImages: function() {
+        const states = ['happy', 'thinking', 'excited', 'sad'];
+        console.log("Recargando todas las imágenes de estados de mascota...");
+        
+        // Crear un arreglo de promesas para cargar cada imagen
+        const preloadPromises = states.map(state => {
+            return new Promise((resolve) => {
+                const img = new Image();
+                img.onload = () => {
+                    console.log(`Precargada imagen para estado '${state}'`);
+                    resolve(true);
+                };
+                img.onerror = () => {
+                    console.error(`Error al precargar imagen para estado '${state}'`);
+                    resolve(false);
+                };
+                img.src = `images/mascot-${state}.png?force=${new Date().getTime()}`;
+            });
+        });
+        
+        // Esperar a que todas las imágenes sean precargadas
+        Promise.all(preloadPromises).then(results => {
+            console.log(`Recarga de imágenes completada. ${results.filter(Boolean).length}/${states.length} imágenes cargadas correctamente.`);
+            // Refrescar el estado actual
+            this.setState(this.state);
+        });
     }
 };
 
 // Inicializar cuando se carga el documento
 document.addEventListener('DOMContentLoaded', () => {
+    console.log("DOM cargado, inicializando mascota...");
     mascot.initialize();
+    
+    // Intentar recargar todas las imágenes después de un breve retraso
+    setTimeout(() => {
+        mascot.reloadAllStateImages();
+    }, 2000);
 });
 
 // Exportar para uso en otros módulos
 window.mascot = mascot;
+
+console.log("Módulo de mascota cargado correctamente");

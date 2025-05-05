@@ -1,6 +1,6 @@
 /**
  * Módulo para la gestión de efectos de sonido
- * Versión simplificada
+ * Versión simplificada con mejor manejo de errores y compatibilidad
  */
 
 const sounds = {
@@ -13,6 +13,8 @@ const sounds = {
      */
     initialize: function() {
         try {
+            console.log('Inicializando sistema de sonido...');
+            
             // Cargar preferencia del usuario si existe
             const savedState = localStorage.getItem('mathlearn_sound_enabled');
             if (savedState !== null) {
@@ -25,6 +27,9 @@ const sounds = {
                 toggleButton.addEventListener('click', () => {
                     this.toggle();
                 });
+                
+                // Actualizar estado visual del botón
+                this.updateSoundButtonState();
             }
             
             // Establecer volumen inicial para todos los sonidos
@@ -32,12 +37,34 @@ const sounds = {
                 const element = document.getElementById(`sound-${sound}`);
                 if (element) {
                     element.volume = this.volume;
+                } else {
+                    console.warn(`Elemento de audio 'sound-${sound}' no encontrado`);
                 }
             });
             
             console.log('Sistema de sonido inicializado correctamente');
+            return true;
         } catch (error) {
             console.error('Error al inicializar sistema de sonido:', error);
+            return false;
+        }
+    },
+    
+    /**
+     * Actualiza el estado visual del botón de sonido
+     */
+    updateSoundButtonState: function() {
+        const icon = document.getElementById('sound-icon');
+        const text = document.getElementById('sound-text');
+        
+        if (icon && text) {
+            if (this.enabled) {
+                icon.className = 'fas fa-volume-up';
+                text.textContent = 'Sonidos: ON';
+            } else {
+                icon.className = 'fas fa-volume-mute';
+                text.textContent = 'Sonidos: OFF';
+            }
         }
     },
     
@@ -82,18 +109,7 @@ const sounds = {
             localStorage.setItem('mathlearn_sound_enabled', this.enabled);
             
             // Actualizar icono y texto del botón
-            const icon = document.getElementById('sound-icon');
-            const text = document.getElementById('sound-text');
-            
-            if (icon && text) {
-                if (this.enabled) {
-                    icon.className = 'fas fa-volume-up';
-                    text.textContent = 'Sonidos: ON';
-                } else {
-                    icon.className = 'fas fa-volume-mute';
-                    text.textContent = 'Sonidos: OFF';
-                }
-            }
+            this.updateSoundButtonState();
             
             // Reproducir sonido de click para confirmar que el sonido está activado
             if (this.enabled) {
@@ -139,12 +155,43 @@ const sounds = {
      */
     playStar: function() {
         this.play('star');
+    },
+    
+    /**
+     * Establece el volumen para todos los sonidos
+     * @param {number} level - Nivel de volumen (0.0 a 1.0)
+     */
+    setVolume: function(level) {
+        if (typeof level !== 'number' || level < 0 || level > 1) {
+            console.error('Nivel de volumen inválido. Debe ser un número entre 0.0 y 1.0');
+            return;
+        }
+        
+        this.volume = level;
+        
+        // Actualizar volumen en todos los elementos de audio
+        ['correct', 'incorrect', 'complete', 'click', 'star'].forEach(sound => {
+            const element = document.getElementById(`sound-${sound}`);
+            if (element) {
+                element.volume = this.volume;
+            }
+        });
+        
+        console.log(`Volumen establecido a ${level}`);
     }
 };
 
 // Inicializar cuando se carga el documento
 document.addEventListener('DOMContentLoaded', () => {
-    sounds.initialize();
-    // Asegurar que el objeto se asigna correctamente a window
-    window.sounds = sounds;
+    try {
+        console.log("DOM cargado, inicializando módulo de sonidos...");
+        sounds.initialize();
+    } catch (error) {
+        console.error("Error al inicializar sounds desde event listener:", error);
+    }
 });
+
+// Asegurar la disponibilidad global
+window.sounds = sounds;
+
+console.log("Módulo de sonidos cargado correctamente");
